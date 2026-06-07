@@ -282,10 +282,12 @@
             return (str || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
         }
 
-        // Extrae el payload del widgetTool desde las distintas rutas posibles
-        // según la versión del proxy CES (inputActionParameters / actionParameters / parameters)
+        // Extrae el payload del widgetTool.
+        // El payload viene en toolCall.args.payload (ruta confirmada en v1.16).
+        // Fallbacks adicionales por si cambia en futuras versiones del proxy CES.
         function extractWidgetPayload(toolCall) {
-            return toolCall.inputActionParameters
+            return toolCall.args?.payload
+                || toolCall.inputActionParameters
                 || toolCall.actionParameters
                 || toolCall.parameters
                 || null;
@@ -339,7 +341,7 @@
                     const toolCall = response?.message?.toolCall;
                     if (!toolCall) return;
 
-                    const toolName = toolCall.tool || toolCall.displayName || toolCall.name || "";
+                    const toolName = toolCall.displayName || toolCall.name || toolCall.tool || "";
                     console.log("ToolCall detectado (raw):", toolName, toolCall);
 
                     const builder = WIDGET_BUILDERS[toolName];
@@ -360,7 +362,7 @@
                         const toolCall = message?.toolCall;
                         if (!toolCall) return;
 
-                        const toolName = toolCall.tool || toolCall.displayName || toolCall.name || "";
+                        const toolName = toolCall.displayName || toolCall.name || toolCall.tool || "";
                         console.log("ToolCall detectado (messages):", toolName, toolCall);
 
                         const builder = WIDGET_BUILDERS[toolName];
