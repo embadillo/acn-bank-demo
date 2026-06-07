@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACN Bank - Virtual Assistant</title>
+
+    <script defer src="https://www.gstatic.com/chat-messenger/sdk/prod/v1.16/chat-messenger.js"></script>
+    <link rel="stylesheet" href="https://www.gstatic.com/chat-messenger/sdk/prod/v1.16/themes/chat-messenger-default.css">
+    <link rel="stylesheet" href="https://www.gstatic.com/chat-messenger/sdk/prod/v1.16/themes/chat-messenger-layout.css">
+
+    <style>
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100vh;
+            background-color: #f4f6f9;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            overflow: hidden;
+        }
+        .loading-container {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100vh;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            text-align: center; color: #333;
+            z-index: 10; background-color: #f4f6f9;
+            transition: opacity 0.4s ease;
+        }
+        chat-messenger {
+            position: absolute !important;
+            top: 0 !important; left: 0 !important;
+            width: 100% !important; height: 100vh !important;
+            max-height: 100vh !important;
+            margin: 0 !important; padding: 0 !important;
+            z-index: 5;
+            display: none;
+        }
+        chat-messenger-container {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* ── CUSTOM WIDGET: show_payment_carousel ───────────────────────── */
+
+        .acn-widget {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .acn-carousel-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        .acn-carousel-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        .acn-carousel-subtitle {
+            font-size: 12px;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+        .acn-carousel-track {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: none;
+            padding-bottom: 2px;
+        }
+        .acn-carousel-track::-webkit-scrollbar { display: none; }
+
+        .acn-payment-card {
+            background: #fff;
+            border: 1px solid #e0e4ea;
+            border-radius: 14px;
+            padding: 14px;
+            min-width: 152px;
+            flex-shrink: 0;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            box-sizing: border-box;
+        }
+        .acn-payee-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .acn-payee-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #f4f6f9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .acn-payee-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 6px;
+        }
+        .acn-payee-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: #1a1a2e;
+            line-height: 1.3;
+        }
+        .acn-badge {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 500;
+            width: fit-content;
+        }
+        .acn-badge-scheduled  { background: #e7f3e8; color: #2d6a2f; }
+        .acn-badge-processing { background: #fef3cd; color: #8a5a00; }
+        .acn-badge-cancelled  { background: #fde8e8; color: #9b1c1c; }
+
+        .acn-payment-date,
+        .acn-payment-amount {
+            font-size: 12px;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .acn-payment-amount { font-weight: 600; }
+
+        .acn-cancel-btn {
+            width: 100%;
+            padding: 7px 0;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: transparent;
+            font-size: 12px;
+            font-weight: 500;
+            color: #1a1a2e;
+            cursor: pointer;
+            margin-top: auto;
+            transition: background 0.15s, border-color 0.15s;
+        }
+        .acn-cancel-btn:hover  { background: #f0f4ff; border-color: #1a56db; }
+        .acn-cancel-btn.disabled {
+            color: #9ca3af;
+            border-color: #e5e7eb;
+            cursor: default;
+            pointer-events: none;
+        }
+        .acn-carousel-dots {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .acn-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: #d1d5db;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: none;
+            padding: 0;
+        }
+        .acn-dot.active { background: #1a56db; }
+    </style>
+</head>
+<body>
+
+    <div id="loadingScreen" class="loading-container">
+        <h2>Connecting to ACN Bank secure channel...</h2>
+        <p>Please wait while we transfer your verification session.</p>
+    </div>
+
+    <chat-messenger url-allowlist="*">
+        <chat-messenger-container
+            chat-title="ACN Bank Demo"
+            chat-title-icon="https://gstatic.com/dialogflow-console/common/assets/ccai-favicons/conversational_agents.png"
+            enable-file-upload
+            enable-audio-input>
+            <chat-reset-session-button slot="titlebar-actions" title-text="Start new chat"></chat-reset-session-button>
+            <chat-toggle-dialog-button slot="titlebar-actions" title-text-expanded="Collapse" title-text-collapsed="Expand"></chat-toggle-dialog-button>
+            <chat-messenger-close-button slot="titlebar-actions" title-text="Close"></chat-messenger-close-button>
+        </chat-messenger-container>
+    </chat-messenger>
+
+    <script>
+
+        /* ════════════════════════════════════════════════════════════════
+           SECCIÓN 1 — PARÁMETROS DE URL (KYC voice handoff)
+        ════════════════════════════════════════════════════════════════ */
+        const urlParams     = new URLSearchParams(window.location.search);
+        const kycRequestId  = urlParams.get('kyc_request_id');
+        const customerDocId = urlParams.get('customer_doc_id');
+
+        console.log("=== KYC Parameters Detected ===");
+        console.log("KYC Request ID:", kycRequestId);
+        console.log("Customer Doc ID:", customerDocId);
+
+
+        /* ════════════════════════════════════════════════════════════════
+           SECCIÓN 2 — LOGOS
+           URLs raw de GitHub. Para agregar un payee nuevo:
+           añadí una entrada acá con el nombre en minúsculas.
+        ════════════════════════════════════════════════════════════════ */
+        const BASE = "https://raw.githubusercontent.com/embadillo/acn-bank-assets/refs/heads/main/";
+
+        const PAYEE_LOGOS = {
+            "hydro one":              BASE + "Hydro-Logo-from-web-558.jpeg",
+            "rogers communications":  BASE + "rogerssocial-1.jpg",
+            "enbridge gas":           BASE + "enbridge.png",
+            "bell canada":            BASE + "aHR0cHM6Ly9pbWFnZXMuY29udGVudHN0YWNrLmlvL3YzL2Fzc2V0cy9ibHRmYTgyMjcxYzllZDAxMDBiL2JsdDQzMTQyZjFjODQ0NjQ5MjUvNjllNjk0NDcwODEyMGIwZTUyMTRkZmE2L0JlbGxHUENhbmFkYV9WZXJfUkdCLmpwZw%3D%3D.jpg",
+            "toronto property tax":   BASE + "Captura%20de%20pantalla%202026-06-07%20141855.png",
+        };
+
+        function getPayeeLogo(payeeName) {
+            const key = (payeeName || "").toLowerCase().trim();
+            for (const [name, url] of Object.entries(PAYEE_LOGOS)) {
+                if (key.includes(name)) return url;
+            }
+            return null; // fallback al emoji
+        }
+
+        function getPayeeEmoji(payeeName) {
+            const p = (payeeName || "").toLowerCase();
+            if (p.includes("hydro") || p.includes("electric") || p.includes("power")) return "⚡";
+            if (p.includes("rogers") || p.includes("bell") || p.includes("telus"))     return "📱";
+            if (p.includes("gas") || p.includes("enbridge"))                           return "🔥";
+            if (p.includes("tax") || p.includes("government") || p.includes("city"))   return "🏛️";
+            if (p.includes("water"))                                                    return "💧";
+            if (p.includes("insurance"))                                                return "🛡️";
+            return "🏦";
+        }
+
+
+        /* ════════════════════════════════════════════════════════════════
+           SECCIÓN 3 — BUILDERS
+           Una función por cada custom widget.
+           Recibe el payload del agente, retorna HTML string.
+        ════════════════════════════════════════════════════════════════ */
+
+        /**
+         * BUILDER: show_payment_carousel
+         * Campos usados del payload (vienen de tu Python tool):
+         *   payments[].payee_name, amount, currency, display_date,
+         *   status, cancellable, cta_label, cta_value
+         */
+        function buildPaymentCarousel(payload) {
+            const payments = payload.payments || [];
+            const id = "carousel_" + Date.now();
+
+            const cards = payments.map((p, i) => {
+                const status     = (p.status || "").toLowerCase();
+                const badgeClass = status === "processing" ? "acn-badge-processing"
+                                 : status === "cancelled"  ? "acn-badge-cancelled"
+                                 : "acn-badge-scheduled";
+                const badgeLabel = p.status
+                    ? p.status.charAt(0).toUpperCase() + p.status.slice(1)
+                    : "Scheduled";
+
+                const cancellable = p.cancellable === true;
+                const ctaValue    = p.cta_value || "";
+                const logoUrl     = getPayeeLogo(p.payee_name);
+
+                const iconHtml = logoUrl
+                    ? `<img src="${logoUrl}" alt="${p.payee_name}">`
+                    : getPayeeEmoji(p.payee_name);
+
+                const btnHtml = cancellable
+                    ? `<button class="acn-cancel-btn"
+                               onclick="acnCancelPayment(this, '${escapeAttr(p.payee_name)}', '${escapeAttr(ctaValue)}')">
+                           ${p.cta_label || "Cancel payment"}
+                       </button>`
+                    : `<button class="acn-cancel-btn disabled">${p.cta_label || badgeLabel}</button>`;
+
+                return `
+                    <div class="acn-payment-card">
+                        <div class="acn-payee-row">
+                            <div class="acn-payee-icon">${iconHtml}</div>
+                            <div class="acn-payee-name">${p.payee_name || ""}</div>
+                        </div>
+                        <span class="acn-badge ${badgeClass}">${badgeLabel}</span>
+                        <div class="acn-payment-date">📅 ${p.display_date || ""}</div>
+                        <div class="acn-payment-amount">💲 ${p.currency || "CAD"} ${p.amount || ""}</div>
+                        ${btnHtml}
+                    </div>
+                `;
+            }).join("");
+
+            const dots = payments.map((_, i) =>
+                `<button class="acn-dot ${i === 0 ? "active" : ""}"
+                         onclick="acnCarouselGoTo('${id}', ${i})"></button>`
+            ).join("");
+
+            return `
+                <div class="acn-widget">
+                    <div class="acn-carousel-header">
+                        <span class="acn-carousel-title">📅 ${payload.title || "Upcoming scheduled payments"}</span>
+                    </div>
+                    <div class="acn-carousel-subtitle">${payload.subtitle || "Select a payment to review or cancel."}</div>
+                    <div class="acn-carousel-track" id="${id}"
+                         onscroll="acnCarouselScroll('${id}', ${payments.length})">
+                        ${cards}
+                    </div>
+                    <div class="acn-carousel-dots" id="${id}_dots">${dots}</div>
+                </div>
+            `;
+        }
+
+
+        /* ════════════════════════════════════════════════════════════════
+           SECCIÓN 4 — DISPATCHER
+           Mapea payload.type → builder.
+           Para agregar un widget nuevo: una línea acá.
+        ════════════════════════════════════════════════════════════════ */
+        const WIDGET_RENDERERS = {
+            "show_payment_carousel": buildPaymentCarousel,
+            // "show_kyc_checklist": buildKycChecklist,
+        };
+
+
+        /* ════════════════════════════════════════════════════════════════
+           SECCIÓN 5 — HELPERS
+        ════════════════════════════════════════════════════════════════ */
+
+        function acnSendMessage(text) {
+            const chatEl = document.querySelector("chat-messenger");
+            if (chatEl && typeof chatEl.sendMessage === "function") {
+                chatEl.sendMessage({ text });
+            }
+        }
+
+        function acnCancelPayment(btn, payeeName, ctaValue) {
+            btn.textContent = "Cancelled";
+            btn.classList.add("disabled");
+            btn.style.color = "#9b1c1c";
+            btn.style.borderColor = "#fca5a5";
+            // manda el cta_value exacto que viene de tu Python tool
+            acnSendMessage(ctaValue || "cancel_payment:" + payeeName);
+        }
+
+        function acnCarouselGoTo(id, index) {
+            const track = document.getElementById(id);
+            if (!track) return;
+            const card = track.querySelector(".acn-payment-card");
+            const cardWidth = card ? card.offsetWidth + 10 : 162;
+            track.scrollTo({ left: index * cardWidth, behavior: "smooth" });
+            setTimeout(() => acnCarouselUpdateDots(id, index), 350);
+        }
+
+        function acnCarouselScroll(id, total) {
+            const track = document.getElementById(id);
+            if (!track) return;
+            const card = track.querySelector(".acn-payment-card");
+            const cardWidth = card ? card.offsetWidth + 10 : 162;
+            const index = Math.round(track.scrollLeft / cardWidth);
+            acnCarouselUpdateDots(id, index);
+        }
+
+        function acnCarouselUpdateDots(id, activeIndex) {
+            const dotsEl = document.getElementById(id + "_dots");
+            if (!dotsEl) return;
+            dotsEl.querySelectorAll(".acn-dot").forEach((dot, i) => {
+                dot.classList.toggle("active", i === activeIndex);
+            });
+        }
+
+        function escapeAttr(str) {
+            return (str || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+        }
+
+
+        /* ════════════════════════════════════════════════════════════════
+           SECCIÓN 6 — INICIALIZACIÓN PRINCIPAL
+        ════════════════════════════════════════════════════════════════ */
+        window.addEventListener("chat-messenger-loaded", () => {
+            console.log("Widget loaded. Checking handoff context...");
+
+            const isVoiceHandoff = !!(kycRequestId && customerDocId);
+            console.log("Is Voice Handoff Active?:", isVoiceHandoff);
+
+            chatSdk.registerContext(
+                chatSdk.prebuilts.ces.createContext({
+                    deploymentName: "projects/483471568825/locations/us/apps/27be6c70-74dc-4e50-a3e8-25b032e7c965/deployments/7cbb68f9-147f-4698-be02-e7ea5fa5d1a3",
+                    tokenBroker: {
+                        enableTokenBroker: true,
+                        enableRecaptcha: false
+                    },
+                    sessionParameters: {
+                        "is_voice_handoff": isVoiceHandoff
+                    }
+                }),
+            );
+
+            const chatEl        = document.querySelector("chat-messenger");
+            const loadingScreen = document.getElementById("loadingScreen");
+
+            /* ── LISTENER DE CUSTOM WIDGETS ─────────────────────────────
+               Si el type tiene renderer → renderiza custom.
+               Si no → deja pasar (prebuilts de Google siguen funcionando).
+            ────────────────────────────────────────────────────────── */
+            chatEl.addEventListener("df-messenger-payload", (event) => {
+                const payload = event.detail?.payload;
+                console.log("=== Payload recibido ===", payload);
+
+                if (!payload?.type) return;
+
+                const renderer = WIDGET_RENDERERS[payload.type];
+
+                if (renderer) {
+                    console.log(`Renderizando custom widget: ${payload.type}`);
+                    event.stopPropagation();
+                    chatEl.renderCustomCard([{ type: "html", html: renderer(payload) }]);
+                } else {
+                    console.log(`Sin renderer para "${payload.type}" — pasando al SDK`);
+                }
+            });
+
+            /* ── MOSTRAR CHAT ──────────────────────────────────────── */
+            const showChatUI = () => {
+                if (chatEl) {
+                    chatEl.style.display = "block";
+                    if (typeof chatEl.openChat === "function") chatEl.openChat();
+                    else if (typeof chatEl.expandChatWindow === "function") chatEl.expandChatWindow();
+                    else chatEl.setAttribute("open", "true");
+                }
+                if (loadingScreen) loadingScreen.style.display = "none";
+            };
+
+            // CASO A: voice handoff KYC
+            if (isVoiceHandoff) {
+                setTimeout(() => {
+                    const kycPayload = `continue_kyc_upload:${kycRequestId}:${customerDocId}`;
+                    console.log("Injecting KYC payload:", kycPayload);
+                    showChatUI();
+                    if (chatEl && typeof chatEl.sendQuery === "function") {
+                        chatEl.sendQuery(kycPayload);
+                    } else if (chatEl && typeof chatEl.sendMessage === "function") {
+                        chatEl.sendMessage({ text: kycPayload });
+                    }
+                }, 1500);
+
+            // CASO B: flujo estándar web
+            } else {
+                console.warn("No KYC params detected. Launching in standard user mode.");
+                showChatUI();
+            }
+        });
+
+    </script>
+</body>
+</html>
