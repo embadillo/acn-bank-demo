@@ -41,137 +41,54 @@
         }
 
         /* ── CUSTOM WIDGET: show_payment_carousel ───────────────────────── */
-
         .acn-widget {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             width: 100%;
             box-sizing: border-box;
         }
-        .acn-carousel-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 4px;
-        }
-        .acn-carousel-title {
-            font-size: 15px;
-            font-weight: 600;
-            color: #1a1a2e;
-        }
-        .acn-carousel-subtitle {
-            font-size: 12px;
-            color: #6b7280;
-            margin-bottom: 12px;
-        }
+        .acn-carousel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+        .acn-carousel-title  { font-size: 15px; font-weight: 600; color: #1a1a2e; }
+        .acn-carousel-subtitle { font-size: 12px; color: #6b7280; margin-bottom: 12px; }
         .acn-carousel-track {
-            display: flex;
-            gap: 10px;
-            overflow-x: auto;
-            scroll-snap-type: x mandatory;
-            scrollbar-width: none;
-            padding-bottom: 2px;
+            display: flex; gap: 10px;
+            overflow-x: auto; scroll-snap-type: x mandatory;
+            scrollbar-width: none; padding-bottom: 2px;
         }
         .acn-carousel-track::-webkit-scrollbar { display: none; }
-
         .acn-payment-card {
-            background: #fff;
-            border: 1px solid #e0e4ea;
-            border-radius: 14px;
-            padding: 14px;
-            min-width: 152px;
-            flex-shrink: 0;
+            background: #fff; border: 1px solid #e0e4ea;
+            border-radius: 14px; padding: 14px;
+            min-width: 152px; flex-shrink: 0;
             scroll-snap-align: start;
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
+            display: flex; flex-direction: column; gap: 7px;
             box-sizing: border-box;
         }
-        .acn-payee-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        .acn-payee-row { display: flex; align-items: center; gap: 8px; }
         .acn-payee-icon {
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
+            width: 32px; height: 32px; border-radius: 8px;
             background: #f4f6f9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            flex-shrink: 0;
-            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; flex-shrink: 0; overflow: hidden;
         }
-        .acn-payee-icon img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            border-radius: 6px;
-        }
-        .acn-payee-name {
-            font-size: 12px;
-            font-weight: 600;
-            color: #1a1a2e;
-            line-height: 1.3;
-        }
-        .acn-badge {
-            display: inline-block;
-            padding: 2px 9px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 500;
-            width: fit-content;
-        }
+        .acn-payee-icon img { width: 100%; height: 100%; object-fit: contain; border-radius: 6px; }
+        .acn-payee-name { font-size: 12px; font-weight: 600; color: #1a1a2e; line-height: 1.3; }
+        .acn-badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; width: fit-content; }
         .acn-badge-scheduled  { background: #e7f3e8; color: #2d6a2f; }
         .acn-badge-processing { background: #fef3cd; color: #8a5a00; }
         .acn-badge-cancelled  { background: #fde8e8; color: #9b1c1c; }
-
-        .acn-payment-date,
-        .acn-payment-amount {
-            font-size: 12px;
-            color: #374151;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
+        .acn-payment-date, .acn-payment-amount { font-size: 12px; color: #374151; display: flex; align-items: center; gap: 5px; }
         .acn-payment-amount { font-weight: 600; }
-
         .acn-cancel-btn {
-            width: 100%;
-            padding: 7px 0;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            background: transparent;
-            font-size: 12px;
-            font-weight: 500;
-            color: #1a1a2e;
-            cursor: pointer;
-            margin-top: auto;
+            width: 100%; padding: 7px 0;
+            border: 1px solid #d1d5db; border-radius: 8px;
+            background: transparent; font-size: 12px; font-weight: 500;
+            color: #1a1a2e; cursor: pointer; margin-top: auto;
             transition: background 0.15s, border-color 0.15s;
         }
-        .acn-cancel-btn:hover  { background: #f0f4ff; border-color: #1a56db; }
-        .acn-cancel-btn.disabled {
-            color: #9ca3af;
-            border-color: #e5e7eb;
-            cursor: default;
-            pointer-events: none;
-        }
-        .acn-carousel-dots {
-            display: flex;
-            justify-content: center;
-            gap: 6px;
-            margin-top: 10px;
-        }
-        .acn-dot {
-            width: 7px; height: 7px;
-            border-radius: 50%;
-            background: #d1d5db;
-            cursor: pointer;
-            transition: background 0.2s;
-            border: none;
-            padding: 0;
-        }
+        .acn-cancel-btn:hover { background: #f0f4ff; border-color: #1a56db; }
+        .acn-cancel-btn.disabled { color: #9ca3af; border-color: #e5e7eb; cursor: default; pointer-events: none; }
+        .acn-carousel-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+        .acn-dot { width: 7px; height: 7px; border-radius: 50%; background: #d1d5db; cursor: pointer; transition: background 0.2s; border: none; padding: 0; }
         .acn-dot.active { background: #1a56db; }
     </style>
 </head>
@@ -210,17 +127,15 @@
 
         /* ════════════════════════════════════════════════════════════════
            SECCIÓN 2 — LOGOS
-           URLs raw de GitHub. Para agregar un payee nuevo:
-           añadí una entrada acá con el nombre en minúsculas.
         ════════════════════════════════════════════════════════════════ */
         const BASE = "https://raw.githubusercontent.com/embadillo/acn-bank-assets/refs/heads/main/";
 
         const PAYEE_LOGOS = {
-            "hydro one":              BASE + "Hydro-Logo-from-web-558.jpeg",
-            "rogers communications":  BASE + "rogerssocial-1.jpg",
-            "enbridge gas":           BASE + "enbridge.png",
-            "bell canada":            BASE + "aHR0cHM6Ly9pbWFnZXMuY29udGVudHN0YWNrLmlvL3YzL2Fzc2V0cy9ibHRmYTgyMjcxYzllZDAxMDBiL2JsdDQzMTQyZjFjODQ0NjQ5MjUvNjllNjk0NDcwODEyMGIwZTUyMTRkZmE2L0JlbGxHUENhbmFkYV9WZXJfUkdCLmpwZw%3D%3D.jpg",
-            "toronto property tax":   BASE + "Captura%20de%20pantalla%202026-06-07%20141855.png",
+            "hydro one":             BASE + "Hydro-Logo-from-web-558.jpeg",
+            "rogers communications": BASE + "rogerssocial-1.jpg",
+            "enbridge gas":          BASE + "enbridge.png",
+            "bell canada":           BASE + "aHR0cHM6Ly9pbWFnZXMuY29udGVudHN0YWNrLmlvL3YzL2Fzc2V0cy9ibHRmYTgyMjcxYzllZDAxMDBiL2JsdDQzMTQyZjFjODQ0NjQ5MjUvNjllNjk0NDcwODEyMGIwZTUyMTRkZmE2L0JlbGxHUENhbmFkYV9WZXJfUkdCLmpwZw%3D%3D.jpg",
+            "toronto property tax":  BASE + "Captura%20de%20pantalla%202026-06-07%20141855.png",
         };
 
         function getPayeeLogo(payeeName) {
@@ -228,7 +143,7 @@
             for (const [name, url] of Object.entries(PAYEE_LOGOS)) {
                 if (key.includes(name)) return url;
             }
-            return null; // fallback al emoji
+            return null;
         }
 
         function getPayeeEmoji(payeeName) {
@@ -245,21 +160,13 @@
 
         /* ════════════════════════════════════════════════════════════════
            SECCIÓN 3 — BUILDERS
-           Una función por cada custom widget.
-           Recibe el payload del agente, retorna HTML string.
         ════════════════════════════════════════════════════════════════ */
 
-        /**
-         * BUILDER: show_payment_carousel
-         * Campos usados del payload (vienen de tu Python tool):
-         *   payments[].payee_name, amount, currency, display_date,
-         *   status, cancellable, cta_label, cta_value
-         */
         function buildPaymentCarousel(payload) {
             const payments = payload.payments || [];
             const id = "carousel_" + Date.now();
 
-            const cards = payments.map((p, i) => {
+            const cards = payments.map((p) => {
                 const status     = (p.status || "").toLowerCase();
                 const badgeClass = status === "processing" ? "acn-badge-processing"
                                  : status === "cancelled"  ? "acn-badge-cancelled"
@@ -268,17 +175,14 @@
                     ? p.status.charAt(0).toUpperCase() + p.status.slice(1)
                     : "Scheduled";
 
-                const cancellable = p.cancellable === true;
-                const ctaValue    = p.cta_value || "";
-                const logoUrl     = getPayeeLogo(p.payee_name);
-
+                const logoUrl  = getPayeeLogo(p.payee_name);
                 const iconHtml = logoUrl
                     ? `<img src="${logoUrl}" alt="${p.payee_name}">`
                     : getPayeeEmoji(p.payee_name);
 
-                const btnHtml = cancellable
+                const btnHtml = p.cancellable
                     ? `<button class="acn-cancel-btn"
-                               onclick="acnCancelPayment(this, '${escapeAttr(p.payee_name)}', '${escapeAttr(ctaValue)}')">
+                               onclick="acnCancelPayment(this, '${escapeAttr(p.payee_name)}', '${escapeAttr(p.cta_value)}')">
                            ${p.cta_label || "Cancel payment"}
                        </button>`
                     : `<button class="acn-cancel-btn disabled">${p.cta_label || badgeLabel}</button>`;
@@ -320,13 +224,29 @@
 
         /* ════════════════════════════════════════════════════════════════
            SECCIÓN 4 — DISPATCHER
-           Mapea payload.type → builder.
-           Para agregar un widget nuevo: una línea acá.
+           Identifica el widget por sus campos únicos ya que el SDK
+           siempre manda type: "custom_template" para todos los customs.
+           Para agregar un widget nuevo: añadí una entrada en DETECTORS.
         ════════════════════════════════════════════════════════════════ */
-        const WIDGET_RENDERERS = {
-            "show_payment_carousel": buildPaymentCarousel,
-            // "show_kyc_checklist": buildKycChecklist,
-        };
+
+        const DETECTORS = [
+            {
+                // show_payment_carousel: tiene el campo "payments" como array
+                detect:  (p) => Array.isArray(p.payments),
+                builder: buildPaymentCarousel,
+            },
+            // Próximo widget:
+            // { detect: (p) => Array.isArray(p.kyc_documents), builder: buildKycChecklist },
+        ];
+
+        function dispatchCustomWidget(payload) {
+            for (const { detect, builder } of DETECTORS) {
+                if (detect(payload)) {
+                    return builder(payload);
+                }
+            }
+            return null; // no hay builder para este payload
+        }
 
 
         /* ════════════════════════════════════════════════════════════════
@@ -345,7 +265,6 @@
             btn.classList.add("disabled");
             btn.style.color = "#9b1c1c";
             btn.style.borderColor = "#fca5a5";
-            // manda el cta_value exacto que viene de tu Python tool
             acnSendMessage(ctaValue || "cancel_payment:" + payeeName);
         }
 
@@ -358,7 +277,7 @@
             setTimeout(() => acnCarouselUpdateDots(id, index), 350);
         }
 
-        function acnCarouselScroll(id, total) {
+        function acnCarouselScroll(id) {
             const track = document.getElementById(id);
             if (!track) return;
             const card = track.querySelector(".acn-payment-card");
@@ -406,24 +325,32 @@
             const loadingScreen = document.getElementById("loadingScreen");
 
             /* ── LISTENER DE CUSTOM WIDGETS ─────────────────────────────
-               Si el type tiene renderer → renderiza custom.
-               Si no → deja pasar (prebuilts de Google siguen funcionando).
+               Evento correcto para chat-messenger v1.16: df-response-received
+               El payload viene en event.detail.raw como array de mensajes.
+               Buscamos chunks con "payload" y los despachamos al builder.
             ────────────────────────────────────────────────────────── */
-            chatEl.addEventListener("df-messenger-payload", (event) => {
-                const payload = event.detail?.payload;
-                console.log("=== Payload recibido ===", payload);
+            window.addEventListener("df-response-received", (event) => {
+                console.log("=== df-response-received ===", event.detail);
 
-                if (!payload?.type) return;
+                // El payload crudo viene como array de mensajes
+                const messages = event.detail?.raw;
+                if (!Array.isArray(messages)) return;
 
-                const renderer = WIDGET_RENDERERS[payload.type];
+                messages.forEach((message) => {
+                    const chunks = message.chunks || [];
+                    chunks.forEach((chunk) => {
+                        if (!chunk.payload) return;
 
-                if (renderer) {
-                    console.log(`Renderizando custom widget: ${payload.type}`);
-                    event.stopPropagation();
-                    chatEl.renderCustomCard([{ type: "html", html: renderer(payload) }]);
-                } else {
-                    console.log(`Sin renderer para "${payload.type}" — pasando al SDK`);
-                }
+                        const payload = chunk.payload;
+                        console.log("=== Payload detectado ===", payload);
+
+                        const html = dispatchCustomWidget(payload);
+                        if (html) {
+                            console.log("Renderizando custom widget...");
+                            chatEl.renderCustomCard([{ type: "html", html }]);
+                        }
+                    });
+                });
             });
 
             /* ── MOSTRAR CHAT ──────────────────────────────────────── */
