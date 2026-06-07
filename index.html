@@ -213,7 +213,7 @@
                     </div>
                     <div class="acn-carousel-subtitle">${payload.subtitle || "Select a payment to review or cancel."}</div>
                     <div class="acn-carousel-track" id="${id}"
-                         onscroll="acnCarouselScroll('${id}', ${payments.length})">
+                         onscroll="acnCarouselScroll('${id}')">
                         ${cards}
                     </div>
                     <div class="acn-carousel-dots" id="${id}_dots">${dots}</div>
@@ -224,29 +224,13 @@
 
         /* ════════════════════════════════════════════════════════════════
            SECCIÓN 4 — DISPATCHER
-           Identifica el widget por sus campos únicos ya que el SDK
-           siempre manda type: "custom_template" para todos los customs.
-           Para agregar un widget nuevo: añadí una entrada en DETECTORS.
+           Mapea el nombre de la tool → builder.
+           Para agregar un widget nuevo: una línea acá.
         ════════════════════════════════════════════════════════════════ */
-
-        const DETECTORS = [
-            {
-                // show_payment_carousel: tiene el campo "payments" como array
-                detect:  (p) => Array.isArray(p.payments),
-                builder: buildPaymentCarousel,
-            },
-            // Próximo widget:
-            // { detect: (p) => Array.isArray(p.kyc_documents), builder: buildKycChecklist },
-        ];
-
-        function dispatchCustomWidget(payload) {
-            for (const { detect, builder } of DETECTORS) {
-                if (detect(payload)) {
-                    return builder(payload);
-                }
-            }
-            return null; // no hay builder para este payload
-        }
+        const WIDGET_BUILDERS = {
+            "show_payment_carousel": buildPaymentCarousel,
+            // "show_kyc_checklist": buildKycChecklist,
+        };
 
 
         /* ════════════════════════════════════════════════════════════════
@@ -298,6 +282,15 @@
             return (str || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
         }
 
+        // Extrae el payload del widgetTool desde las distintas rutas posibles
+        // según la versión del proxy CES (inputActionParameters / actionParameters / parameters)
+        function extractWidgetPayload(toolCall) {
+            return toolCall.inputActionParameters
+                || toolCall.actionParameters
+                || toolCall.parameters
+                || null;
+        }
+
 
         /* ════════════════════════════════════════════════════════════════
            SECCIÓN 6 — INICIALIZACIÓN PRINCIPAL
@@ -325,32 +318,62 @@
             const loadingScreen = document.getElementById("loadingScreen");
 
             /* ── LISTENER DE CUSTOM WIDGETS ─────────────────────────────
-               Evento correcto para chat-messenger v1.16: df-response-received
-               El payload viene en event.detail.raw como array de mensajes.
-               Buscamos chunks con "payload" y los despachamos al builder.
+               Según tu dev, el payload del WidgetTool NO viene en message.payload
+               sino en message.toolCall.inputActionParameters (o actionParameters
+               o parameters dependiendo de la versión del proxy CES).
+
+               Buscamos en ambas rutas:
+               - event.detail.raw.responses[n].message.toolCall
+               - event.detail.data.messages[n].toolCall
             ────────────────────────────────────────────────────────── */
-            window.addEventListener("df-response-received", (event) => {
-                console.log("=== df-response-received ===", event.detail);
+            chatEl.addEventListener("df-response-received", (event) => {
+                console.log("=== df-response-received ===");
+                console.log("RAW:", event.detail?.raw);
+                console.log("MESSAGES:", event.detail?.data?.messages);
 
-                // El payload crudo viene como array de mensajes
-                const messages = event.detail?.raw;
-                if (!Array.isArray(messages)) return;
+                let rendered = false;
 
-                messages.forEach((message) => {
-                    const chunks = message.chunks || [];
-                    chunks.forEach((chunk) => {
-                        if (!chunk.payload) return;
+                // RUTA A: event.detail.raw.responses
+                const responses = event.detail?.raw?.responses || [];
+                responses.forEach((response) => {
+                    const toolCall = response?.message?.toolCall;
+                    if (!toolCall) return;
 
-                        const payload = chunk.payload;
-                        console.log("=== Payload detectado ===", payload);
+                    const toolName = toolCall.tool || toolCall.displayName || toolCall.name || "";
+                    console.log("ToolCall detectado (raw):", toolName, toolCall);
 
-                        const html = dispatchCustomWidget(payload);
-                        if (html) {
-                            console.log("Renderizando custom widget...");
-                            chatEl.renderCustomCard([{ type: "html", html }]);
+                    const builder = WIDGET_BUILDERS[toolName];
+                    if (builder) {
+                        const payload = extractWidgetPayload(toolCall);
+                        if (payload) {
+                            console.log("Renderizando widget desde RAW:", toolName, payload);
+                            chatEl.renderCustomCard([{ type: "html", html: builder(payload) }]);
+                            rendered = true;
+                        }
+                    }
+                });
+
+                // RUTA B: event.detail.data.messages (fallback)
+                if (!rendered) {
+                    const messages = event.detail?.data?.messages || [];
+                    messages.forEach((message) => {
+                        const toolCall = message?.toolCall;
+                        if (!toolCall) return;
+
+                        const toolName = toolCall.tool || toolCall.displayName || toolCall.name || "";
+                        console.log("ToolCall detectado (messages):", toolName, toolCall);
+
+                        const builder = WIDGET_BUILDERS[toolName];
+                        if (builder) {
+                            const payload = extractWidgetPayload(toolCall);
+                            if (payload) {
+                                console.log("Renderizando widget desde MESSAGES:", toolName, payload);
+                                chatEl.renderCustomCard([{ type: "html", html: builder(payload) }]);
+                                rendered = true;
+                            }
                         }
                     });
-                });
+                }
             });
 
             /* ── MOSTRAR CHAT ──────────────────────────────────────── */
