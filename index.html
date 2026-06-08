@@ -102,7 +102,7 @@
         }
 
         /* ════════════════════════════════════════════════════════════════
-           SECCIÓN 3 — BUILDER: buildPaymentCarousel (Estilos Inline Blindados)
+           SECCIÓN 3 — BUILDER: buildPaymentCarousel (UI Premium)
         ════════════════════════════════════════════════════════════════ */
         function buildPaymentCarousel(payload) {
             const payments = payload.payments || [];
@@ -113,28 +113,30 @@
                 const badgeClass = status === "processing" ? "acn-badge-processing"
                                  : status === "cancelled"  ? "acn-badge-cancelled"
                                  : "acn-badge-scheduled";
-                const badgeLabel = p.status
-                    ? p.status.charAt(0).toUpperCase() + p.status.slice(1)
-                    : "Scheduled";
+                const badgeLabel = p.status ? p.status.charAt(0).toUpperCase() + p.status.slice(1) : "Scheduled";
 
                 const logoUrl  = getPayeeLogo(p.payee_name);
+                
+                // Icono circular (sin franjas grises)
                 const iconHtml = logoUrl
-                    ? `<img src="${logoUrl}" alt="${p.payee_name}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;">`
+                    ? `<img src="${logoUrl}" alt="${p.payee_name}" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">`
                     : `<span style="font-size:16px">${getPayeeEmoji(p.payee_name)}</span>`;
 
-                // ATENCIÓN: Eliminamos onclick de los botones para evadir el borrado de DOMPurify
+                // Botón centrado
                 const btnHtml = p.cancellable
                     ? `<button class="acn-cancel-btn"
                                data-payee="${escapeAttr(p.payee_name)}"
                                data-cta="${escapeAttr(p.cta_value)}"
                                style="width:100%;padding:7px 0;border:1px solid #d1d5db;border-radius:8px;
                                       background:transparent;font-size:12px;font-weight:500;color:#1a1a2e;
-                                      cursor:pointer;margin-top:auto;transition: background 0.15s, border-color 0.15s;">
+                                      cursor:pointer;margin-top:auto;text-align:center;display:flex;justify-content:center;
+                                      transition: background 0.15s, border-color 0.15s;">
                            ${p.cta_label || "Cancel payment"}
                        </button>`
                     : `<button class="acn-cancel-btn disabled"
                                style="width:100%;padding:7px 0;border:1px solid #e5e7eb;border-radius:8px;
-                                      background:transparent;font-size:12px;color:#9ca3af;cursor:default;pointer-events:none;">
+                                      background:transparent;font-size:12px;color:#9ca3af;cursor:default;pointer-events:none;
+                                      text-align:center;display:flex;justify-content:center;margin-top:auto;">
                            ${p.cta_label || badgeLabel}
                        </button>`;
 
@@ -144,75 +146,79 @@
                     "acn-badge-cancelled":  "background:#fde8e8;color:#9b1c1c;",
                 };
 
+                // Tarjeta con ancho fijo estricto (170px)
+                // Se removió el nowrap del título, permitiendo bajar a la 2da línea si es necesario.
                 return `
                     <div class="acn-payment-card"
                          style="background:#fff;border:1px solid #e0e4ea;border-radius:14px;padding:14px;
-                                min-width:152px;flex-shrink:0;scroll-snap-align:start;
+                                width:170px;flex: 0 0 auto;scroll-snap-align:start;
                                 display:flex;flex-direction:column;gap:7px;box-sizing:border-box;">
-                        <div style="display:flex;align-items:center;gap:8px;">
-                            <div style="width:32px;height:32px;border-radius:8px;background:#f4f6f9;
+                        
+                        <div style="display:flex;align-items:center;gap:8px;min-height:36px;">
+                            <div style="width:32px;height:32px;border-radius:50%;background:#fff;border:1px solid #e5e7eb;
                                         display:flex;align-items:center;justify-content:center;
-                                        flex-shrink:0;overflow:hidden;">
+                                        flex-shrink:0;overflow:hidden;box-sizing:border-box;padding:2px;">
                                 ${iconHtml}
                             </div>
-                            <div style="font-size:12px;font-weight:600;color:#1a1a2e;line-height:1.3;">
+                            <div style="font-size:12px;font-weight:600;color:#1a1a2e;line-height:1.2;white-space:normal;word-break:break-word;">
                                 ${p.payee_name || ""}
                             </div>
                         </div>
+
                         <span style="display:inline-block;padding:2px 9px;border-radius:20px;
                                      font-size:11px;font-weight:500;width:fit-content;
                                      ${badgeColors[badgeClass] || badgeColors['acn-badge-scheduled']}">
                             ${badgeLabel}
                         </span>
-                        <div style="font-size:12px;color:#374151;display:flex;align-items:center;gap:5px;">
+
+                        <div style="font-size:12px;color:#374151;display:flex;align-items:center;gap:5px;margin-top:2px;">
                             📅 ${p.display_date || ""}
                         </div>
                         <div style="font-size:12px;font-weight:600;color:#374151;display:flex;align-items:center;gap:5px;">
                             💲 ${p.currency || "CAD"} ${p.amount || ""}
                         </div>
+                        
                         ${btnHtml}
                     </div>
                 `;
             }).join("");
 
-            // ATENCIÓN: Eliminamos inline onclick del dot
-            const dots = payments.map((_, i) =>
-                `<button class="acn-dot"
-                         data-track-id="${id}"
-                         data-index="${i}"
-                         id="${id}_dot_${i}"
-                         style="width:7px;height:7px;border-radius:50%;
-                                background:${i === 0 ? '#1a56db' : '#d1d5db'};
-                                cursor:pointer;border:none;padding:0;transition:background 0.2s;">
-                 </button>`
-            ).join("");
+            // Flecha flotante a la derecha (si hay más de 2 pagos para que el carrusel tenga sentido)
+            const rightArrow = payments.length > 2 ? `
+                <button class="acn-next-btn" data-track-id="${id}"
+                        style="position:absolute;right:-5px;top:50%;transform:translateY(-50%);z-index:10;
+                               width:32px;height:32px;border-radius:50%;background:#fff;border:1px solid #d1d5db;
+                               box-shadow:0 2px 6px rgba(0,0,0,0.15);cursor:pointer;display:flex;align-items:center;
+                               justify-content:center;color:#1a56db;font-weight:bold;font-size:14px;padding-left:3px;">
+                    ❯
+                </button>
+            ` : "";
 
             return `
                 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-                            width:100%;box-sizing:border-box;">
+                            width:100%;box-sizing:border-box;overflow:hidden;">
                     <div style="font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:4px;">
                         📅 ${payload.title || "Upcoming scheduled payments"}
                     </div>
                     <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">
                         ${payload.subtitle || ""}
                     </div>
-                    <div id="${id}"
-                         class="acn-carousel-track"
-                         data-total="${payments.length}"
-                         style="display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;
-                                scrollbar-width:none;padding-bottom:2px;">
-                        ${cards}
-                    </div>
-                    <div id="${id}_dots"
-                         style="display:flex;justify-content:center;gap:6px;margin-top:10px;">
-                        ${dots}
+                    
+                    <div style="position:relative;width:100%;padding: 5px 0;">
+                        <div id="${id}"
+                             class="acn-carousel-track"
+                             style="display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;
+                                    scrollbar-width:none;padding-bottom:5px;">
+                            ${cards}
+                        </div>
+                        ${rightArrow}
                     </div>
                 </div>
             `;
         }
 
         /* ════════════════════════════════════════════════════════════════
-           SECCIÓN 4 — HELPERS Y EVENT DELEGATION
+           SECCIÓN 4 — HELPERS Y DELEGACIÓN DE EVENTOS
         ════════════════════════════════════════════════════════════════ */
         function acnSendMessage(text) {
             const chatEl = document.querySelector("chat-messenger");
@@ -229,26 +235,11 @@
             acnSendMessage(ctaValue || "cancel_payment:" + payeeName);
         }
 
-        function acnCarouselGoTo(track, index) {
-            const card = track.firstElementChild;
-            const cardWidth = card ? card.offsetWidth + 10 : 162;
-            track.scrollTo({ left: index * cardWidth, behavior: "smooth" });
-            setTimeout(() => acnCarouselUpdateDots(track.id, index, parseInt(track.getAttribute('data-total') || 0)), 350);
-        }
-
-        function acnCarouselUpdateDots(id, activeIndex, total) {
-            for (let i = 0; i < (total || 10); i++) {
-                const dot = document.getElementById(id + "_dot_" + i);
-                if (!dot) break;
-                dot.style.background = i === activeIndex ? "#1a56db" : "#d1d5db";
-            }
-        }
-
         function escapeAttr(str) {
             return (str || "").replace(/'/g, "\\\\'").replace(/"/g, "&quot;");
         }
 
-        /* ── INTERCEPTOR GLOBAL DE CLICS Y SCROLL (Inmune al Sanitizer) ── */
+        /* ── INTERCEPTOR GLOBAL DE CLICS (Inmune a DOMPurify) ── */
         document.addEventListener("click", (e) => {
             // 1. Clic en botón "Cancel Payment"
             const cancelBtn = e.target.closest(".acn-cancel-btn");
@@ -258,13 +249,12 @@
                 acnCancelPayment(cancelBtn, payee, cta);
             }
 
-            // 2. Clic en los "Dots" de navegación
-            const dotBtn = e.target.closest(".acn-dot");
-            if (dotBtn) {
-                const trackId = dotBtn.getAttribute("data-track-id");
-                const index = parseInt(dotBtn.getAttribute("data-index") || "0");
+            // 2. Clic en Flecha Siguiente del Carrusel
+            const nextBtn = e.target.closest(".acn-next-btn");
+            if (nextBtn) {
+                const trackId = nextBtn.getAttribute("data-track-id");
                 
-                // Navegamos por el Shadow DOM del chat para buscar el carrusel inyectado
+                // Navegamos al Shadow DOM
                 const chatMessenger = document.querySelector("chat-messenger");
                 const chatContainer = chatMessenger?.shadowRoot?.querySelector("df-messenger-chat") 
                                    || chatMessenger?.shadowRoot?.querySelector("chat-messenger-chat");
@@ -272,23 +262,14 @@
                 if (chatContainer) {
                     const track = chatContainer.shadowRoot?.getElementById(trackId);
                     if (track) {
-                        acnCarouselGoTo(track, index);
+                        const card = track.firstElementChild;
+                        const cardWidth = card ? card.offsetWidth + 10 : 180;
+                        // Deslizamos exactamente el ancho de 1 tarjeta
+                        track.scrollBy({ left: cardWidth, behavior: "smooth" });
                     }
                 }
             }
         });
-
-        // Evento scroll (fase de captura) para actualizar dots de manera dinámica
-        document.addEventListener("scroll", (e) => {
-            if (e.target && e.target.classList && e.target.classList.contains("acn-carousel-track")) {
-                const track = e.target;
-                const card = track.firstElementChild;
-                const cardWidth = card ? card.offsetWidth + 10 : 162;
-                const index = Math.round(track.scrollLeft / cardWidth);
-                const total = parseInt(track.getAttribute("data-total") || "0");
-                acnCarouselUpdateDots(track.id, index, total);
-            }
-        }, true);
 
         /* ════════════════════════════════════════════════════════════════
            SECCIÓN 5 — INICIALIZACIÓN PRINCIPAL
@@ -309,7 +290,7 @@
             const chatEl        = document.querySelector("chat-messenger");
             const loadingScreen = document.getElementById("loadingScreen");
 
-            /* ── INTERCEPTOR DE CUSTOM WIDGETS DE CES ────────── */
+            /* ── INTERCEPTOR QUIRÚRGICO DE CES ────────── */
             chatEl.addEventListener("chat-messenger-response-received", (event) => {
                 console.log("=== chat-messenger-response-received ===");
                 const outputs = event.detail?.raw?.outputs || [];
@@ -345,7 +326,7 @@
                 });
             });
 
-            /* ── MOSTRAR CHAT ──────────────────────────────────────── */
+            /* ── MOSTRAR CHAT Y FLUJO KYC ───────────────────────── */
             const showChatUI = () => {
                 if (chatEl) {
                     chatEl.style.display = "block";
@@ -356,7 +337,6 @@
                 if (loadingScreen) loadingScreen.style.display = "none";
             };
 
-            // CASO A: voice handoff KYC
             if (isVoiceHandoff) {
                 setTimeout(() => {
                     const kycPayload = `continue_kyc_upload:${kycRequestId}:${customerDocId}`;
@@ -368,7 +348,6 @@
                         chatEl.sendMessage({ text: kycPayload });
                     }
                 }, 1500);
-            // CASO B: flujo estándar web
             } else {
                 console.warn("No KYC params detected. Launching in standard user mode.");
                 showChatUI();
