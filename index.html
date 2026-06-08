@@ -156,7 +156,8 @@
 
         /* ════════════════════════════════════════════════════════════════
            SECCIÓN 3 — BUILDER: buildPaymentCarousel
-           Recibe el payload del agente, retorna HTML string.
+           Los estilos van DENTRO del HTML string porque renderCustomCard
+           inyecta dentro del shadow DOM del SDK — el CSS externo no llega.
         ════════════════════════════════════════════════════════════════ */
         function buildPaymentCarousel(payload) {
             const payments = payload.payments || [];
@@ -173,44 +174,85 @@
 
                 const logoUrl  = getPayeeLogo(p.payee_name);
                 const iconHtml = logoUrl
-                    ? `<img src="${logoUrl}" alt="${p.payee_name}">`
-                    : getPayeeEmoji(p.payee_name);
+                    ? `<img src="${logoUrl}" alt="${p.payee_name}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;">`
+                    : `<span style="font-size:16px">${getPayeeEmoji(p.payee_name)}</span>`;
 
                 const btnHtml = p.cancellable
-                    ? `<button class="acn-cancel-btn"
-                               onclick="acnCancelPayment(this,'${escapeAttr(p.payee_name)}','${escapeAttr(p.cta_value)}')">
+                    ? `<button onclick="acnCancelPayment(this,'${escapeAttr(p.payee_name)}','${escapeAttr(p.cta_value)}')"
+                               style="width:100%;padding:7px 0;border:1px solid #d1d5db;border-radius:8px;
+                                      background:transparent;font-size:12px;font-weight:500;color:#1a1a2e;
+                                      cursor:pointer;margin-top:auto;">
                            ${p.cta_label || "Cancel payment"}
                        </button>`
-                    : `<button class="acn-cancel-btn disabled">${p.cta_label || badgeLabel}</button>`;
+                    : `<button style="width:100%;padding:7px 0;border:1px solid #e5e7eb;border-radius:8px;
+                                      background:transparent;font-size:12px;color:#9ca3af;cursor:default;">
+                           ${p.cta_label || badgeLabel}
+                       </button>`;
+
+                const badgeColors = {
+                    "acn-badge-scheduled":  "background:#e7f3e8;color:#2d6a2f;",
+                    "acn-badge-processing": "background:#fef3cd;color:#8a5a00;",
+                    "acn-badge-cancelled":  "background:#fde8e8;color:#9b1c1c;",
+                };
 
                 return `
-                    <div class="acn-payment-card">
-                        <div class="acn-payee-row">
-                            <div class="acn-payee-icon">${iconHtml}</div>
-                            <div class="acn-payee-name">${p.payee_name || ""}</div>
+                    <div style="background:#fff;border:1px solid #e0e4ea;border-radius:14px;padding:14px;
+                                min-width:152px;flex-shrink:0;scroll-snap-align:start;
+                                display:flex;flex-direction:column;gap:7px;box-sizing:border-box;">
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <div style="width:32px;height:32px;border-radius:8px;background:#f4f6f9;
+                                        display:flex;align-items:center;justify-content:center;
+                                        flex-shrink:0;overflow:hidden;">
+                                ${iconHtml}
+                            </div>
+                            <div style="font-size:12px;font-weight:600;color:#1a1a2e;line-height:1.3;">
+                                ${p.payee_name || ""}
+                            </div>
                         </div>
-                        <span class="acn-badge ${badgeClass}">${badgeLabel}</span>
-                        <div class="acn-payment-date">📅 ${p.display_date || ""}</div>
-                        <div class="acn-payment-amount">💲 ${p.currency || "CAD"} ${p.amount || ""}</div>
+                        <span style="display:inline-block;padding:2px 9px;border-radius:20px;
+                                     font-size:11px;font-weight:500;width:fit-content;
+                                     ${badgeColors[badgeClass] || badgeColors['acn-badge-scheduled']}">
+                            ${badgeLabel}
+                        </span>
+                        <div style="font-size:12px;color:#374151;display:flex;align-items:center;gap:5px;">
+                            📅 ${p.display_date || ""}
+                        </div>
+                        <div style="font-size:12px;font-weight:600;color:#374151;display:flex;align-items:center;gap:5px;">
+                            💲 ${p.currency || "CAD"} ${p.amount || ""}
+                        </div>
                         ${btnHtml}
                     </div>
                 `;
             }).join("");
 
             const dots = payments.map((_, i) =>
-                `<button class="acn-dot ${i === 0 ? "active" : ""}"
-                         onclick="acnCarouselGoTo('${id}', ${i})"></button>`
+                `<button onclick="acnCarouselGoTo('${id}', ${i})"
+                         id="${id}_dot_${i}"
+                         style="width:7px;height:7px;border-radius:50%;
+                                background:${i === 0 ? '#1a56db' : '#d1d5db'};
+                                cursor:pointer;border:none;padding:0;transition:background 0.2s;">
+                 </button>`
             ).join("");
 
             return `
-                <div class="acn-widget">
-                    <div class="acn-carousel-title">📅 ${payload.title || "Upcoming scheduled payments"}</div>
-                    <div class="acn-carousel-subtitle">${payload.subtitle || ""}</div>
-                    <div class="acn-carousel-track" id="${id}"
-                         onscroll="acnCarouselScroll('${id}')">
+                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                            width:100%;box-sizing:border-box;">
+                    <div style="font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:4px;">
+                        📅 ${payload.title || "Upcoming scheduled payments"}
+                    </div>
+                    <div style="font-size:12px;color:#6b7280;margin-bottom:12px;">
+                        ${payload.subtitle || ""}
+                    </div>
+                    <div id="${id}"
+                         onscroll="acnCarouselScroll('${id}', ${payments.length})"
+                         style="display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;
+                                scrollbar-width:none;padding-bottom:2px;">
                         ${cards}
                     </div>
-                    <div class="acn-carousel-dots" id="${id}_dots">${dots}</div>
+                    <div id="${id}_dots"
+                         style="display:flex;justify-content:center;gap:6px;margin-top:10px;">
+                        ${dots}
+                    </div>
                 </div>
             `;
         }
@@ -243,21 +285,22 @@
             setTimeout(() => acnCarouselUpdateDots(id, index), 350);
         }
 
-        function acnCarouselScroll(id) {
+        function acnCarouselScroll(id, total) {
             const track = document.getElementById(id);
             if (!track) return;
-            const card = track.querySelector(".acn-payment-card");
+            // Las cards no tienen clase — calculamos por el primer hijo
+            const card = track.firstElementChild;
             const cardWidth = card ? card.offsetWidth + 10 : 162;
             const index = Math.round(track.scrollLeft / cardWidth);
-            acnCarouselUpdateDots(id, index);
+            acnCarouselUpdateDots(id, index, total || 0);
         }
 
-        function acnCarouselUpdateDots(id, activeIndex) {
-            const dotsEl = document.getElementById(id + "_dots");
-            if (!dotsEl) return;
-            dotsEl.querySelectorAll(".acn-dot").forEach((dot, i) => {
-                dot.classList.toggle("active", i === activeIndex);
-            });
+        function acnCarouselUpdateDots(id, activeIndex, total) {
+            for (let i = 0; i < (total || 10); i++) {
+                const dot = document.getElementById(id + "_dot_" + i);
+                if (!dot) break;
+                dot.style.background = i === activeIndex ? "#1a56db" : "#d1d5db";
+            }
         }
 
         function escapeAttr(str) {
