@@ -39,58 +39,9 @@
             width: 100% !important;
             height: 100% !important;
         }
-
-        /* ── CUSTOM WIDGET: acn-payment-carousel ────────────────────── */
-        .acn-widget {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            width: 100%; box-sizing: border-box;
-        }
-        .acn-carousel-title    { font-size: 15px; font-weight: 600; color: #1a1a2e; margin-bottom: 4px; }
-        .acn-carousel-subtitle { font-size: 12px; color: #6b7280; margin-bottom: 12px; }
-        .acn-carousel-track {
-            display: flex; gap: 10px;
-            overflow-x: auto; scroll-snap-type: x mandatory;
-            scrollbar-width: none; padding-bottom: 2px;
-        }
-        .acn-carousel-track::-webkit-scrollbar { display: none; }
-        .acn-payment-card {
-            background: #fff; border: 1px solid #e0e4ea;
-            border-radius: 14px; padding: 14px;
-            min-width: 152px; flex-shrink: 0;
-            scroll-snap-align: start;
-            display: flex; flex-direction: column; gap: 7px;
-            box-sizing: border-box;
-        }
-        .acn-payee-row { display: flex; align-items: center; gap: 8px; }
-        .acn-payee-icon {
-            width: 32px; height: 32px; border-radius: 8px; background: #f4f6f9;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 16px; flex-shrink: 0; overflow: hidden;
-        }
-        .acn-payee-icon img { width: 100%; height: 100%; object-fit: contain; border-radius: 6px; }
-        .acn-payee-name { font-size: 12px; font-weight: 600; color: #1a1a2e; line-height: 1.3; }
-        .acn-badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 500; width: fit-content; }
-        .acn-badge-scheduled  { background: #e7f3e8; color: #2d6a2f; }
-        .acn-badge-processing { background: #fef3cd; color: #8a5a00; }
-        .acn-badge-cancelled  { background: #fde8e8; color: #9b1c1c; }
-        .acn-payment-date, .acn-payment-amount { font-size: 12px; color: #374151; display: flex; align-items: center; gap: 5px; }
-        .acn-payment-amount { font-weight: 600; }
-        .acn-cancel-btn {
-            width: 100%; padding: 7px 0;
-            border: 1px solid #d1d5db; border-radius: 8px;
-            background: transparent; font-size: 12px; font-weight: 500;
-            color: #1a1a2e; cursor: pointer; margin-top: auto;
-            transition: background 0.15s, border-color 0.15s;
-        }
-        .acn-cancel-btn:hover { background: #f0f4ff; border-color: #1a56db; }
-        .acn-cancel-btn.disabled { color: #9ca3af; border-color: #e5e7eb; cursor: default; pointer-events: none; }
-        .acn-carousel-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
-        .acn-dot { width: 7px; height: 7px; border-radius: 50%; background: #d1d5db; cursor: pointer; transition: background 0.2s; border: none; padding: 0; }
-        .acn-dot.active { background: #1a56db; }
     </style>
 </head>
 <body>
-
     <div id="loadingScreen" class="loading-container">
         <h2>Connecting to ACN Bank secure channel...</h2>
         <p>Please wait while we transfer your verification session.</p>
@@ -109,18 +60,15 @@
     </chat-messenger>
 
     <script>
-
         /* ════════════════════════════════════════════════════════════════
            SECCIÓN 1 — PARÁMETROS DE URL (KYC voice handoff)
         ════════════════════════════════════════════════════════════════ */
         const urlParams     = new URLSearchParams(window.location.search);
         const kycRequestId  = urlParams.get('kyc_request_id');
         const customerDocId = urlParams.get('customer_doc_id');
-
         console.log("=== KYC Parameters Detected ===");
         console.log("KYC Request ID:", kycRequestId);
         console.log("Customer Doc ID:", customerDocId);
-
 
         /* ════════════════════════════════════════════════════════════════
            SECCIÓN 2 — LOGOS
@@ -153,17 +101,14 @@
             return "🏦";
         }
 
-
         /* ════════════════════════════════════════════════════════════════
-           SECCIÓN 3 — BUILDER: buildPaymentCarousel
-           Los estilos van DENTRO del HTML string porque renderCustomCard
-           inyecta dentro del shadow DOM del SDK — el CSS externo no llega.
+           SECCIÓN 3 — BUILDER: buildPaymentCarousel (Estilos Inline Blindados)
         ════════════════════════════════════════════════════════════════ */
         function buildPaymentCarousel(payload) {
             const payments = payload.payments || [];
             const id = "carousel_" + Date.now();
-
-            const cards = payments.map((p) => {
+            
+            const cards = payments.map((p, index) => {
                 const status     = (p.status || "").toLowerCase();
                 const badgeClass = status === "processing" ? "acn-badge-processing"
                                  : status === "cancelled"  ? "acn-badge-cancelled"
@@ -177,15 +122,19 @@
                     ? `<img src="${logoUrl}" alt="${p.payee_name}" style="width:100%;height:100%;object-fit:contain;border-radius:6px;">`
                     : `<span style="font-size:16px">${getPayeeEmoji(p.payee_name)}</span>`;
 
+                // ATENCIÓN: Eliminamos onclick de los botones para evadir el borrado de DOMPurify
                 const btnHtml = p.cancellable
-                    ? `<button onclick="acnCancelPayment(this,'${escapeAttr(p.payee_name)}','${escapeAttr(p.cta_value)}')"
+                    ? `<button class="acn-cancel-btn"
+                               data-payee="${escapeAttr(p.payee_name)}"
+                               data-cta="${escapeAttr(p.cta_value)}"
                                style="width:100%;padding:7px 0;border:1px solid #d1d5db;border-radius:8px;
                                       background:transparent;font-size:12px;font-weight:500;color:#1a1a2e;
-                                      cursor:pointer;margin-top:auto;">
+                                      cursor:pointer;margin-top:auto;transition: background 0.15s, border-color 0.15s;">
                            ${p.cta_label || "Cancel payment"}
                        </button>`
-                    : `<button style="width:100%;padding:7px 0;border:1px solid #e5e7eb;border-radius:8px;
-                                      background:transparent;font-size:12px;color:#9ca3af;cursor:default;">
+                    : `<button class="acn-cancel-btn disabled"
+                               style="width:100%;padding:7px 0;border:1px solid #e5e7eb;border-radius:8px;
+                                      background:transparent;font-size:12px;color:#9ca3af;cursor:default;pointer-events:none;">
                            ${p.cta_label || badgeLabel}
                        </button>`;
 
@@ -196,7 +145,8 @@
                 };
 
                 return `
-                    <div style="background:#fff;border:1px solid #e0e4ea;border-radius:14px;padding:14px;
+                    <div class="acn-payment-card"
+                         style="background:#fff;border:1px solid #e0e4ea;border-radius:14px;padding:14px;
                                 min-width:152px;flex-shrink:0;scroll-snap-align:start;
                                 display:flex;flex-direction:column;gap:7px;box-sizing:border-box;">
                         <div style="display:flex;align-items:center;gap:8px;">
@@ -225,8 +175,11 @@
                 `;
             }).join("");
 
+            // ATENCIÓN: Eliminamos inline onclick del dot
             const dots = payments.map((_, i) =>
-                `<button onclick="acnCarouselGoTo('${id}', ${i})"
+                `<button class="acn-dot"
+                         data-track-id="${id}"
+                         data-index="${i}"
                          id="${id}_dot_${i}"
                          style="width:7px;height:7px;border-radius:50%;
                                 background:${i === 0 ? '#1a56db' : '#d1d5db'};
@@ -244,7 +197,8 @@
                         ${payload.subtitle || ""}
                     </div>
                     <div id="${id}"
-                         onscroll="acnCarouselScroll('${id}', ${payments.length})"
+                         class="acn-carousel-track"
+                         data-total="${payments.length}"
                          style="display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;
                                 scrollbar-width:none;padding-bottom:2px;">
                         ${cards}
@@ -257,9 +211,8 @@
             `;
         }
 
-
         /* ════════════════════════════════════════════════════════════════
-           SECCIÓN 4 — HELPERS
+           SECCIÓN 4 — HELPERS Y EVENT DELEGATION
         ════════════════════════════════════════════════════════════════ */
         function acnSendMessage(text) {
             const chatEl = document.querySelector("chat-messenger");
@@ -276,23 +229,11 @@
             acnSendMessage(ctaValue || "cancel_payment:" + payeeName);
         }
 
-        function acnCarouselGoTo(id, index) {
-            const track = document.getElementById(id);
-            if (!track) return;
-            const card = track.querySelector(".acn-payment-card");
-            const cardWidth = card ? card.offsetWidth + 10 : 162;
-            track.scrollTo({ left: index * cardWidth, behavior: "smooth" });
-            setTimeout(() => acnCarouselUpdateDots(id, index), 350);
-        }
-
-        function acnCarouselScroll(id, total) {
-            const track = document.getElementById(id);
-            if (!track) return;
-            // Las cards no tienen clase — calculamos por el primer hijo
+        function acnCarouselGoTo(track, index) {
             const card = track.firstElementChild;
             const cardWidth = card ? card.offsetWidth + 10 : 162;
-            const index = Math.round(track.scrollLeft / cardWidth);
-            acnCarouselUpdateDots(id, index, total || 0);
+            track.scrollTo({ left: index * cardWidth, behavior: "smooth" });
+            setTimeout(() => acnCarouselUpdateDots(track.id, index, parseInt(track.getAttribute('data-total') || 0)), 350);
         }
 
         function acnCarouselUpdateDots(id, activeIndex, total) {
@@ -304,16 +245,56 @@
         }
 
         function escapeAttr(str) {
-            return (str || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+            return (str || "").replace(/'/g, "\\\\'").replace(/"/g, "&quot;");
         }
 
+        /* ── INTERCEPTOR GLOBAL DE CLICS Y SCROLL (Inmune al Sanitizer) ── */
+        document.addEventListener("click", (e) => {
+            // 1. Clic en botón "Cancel Payment"
+            const cancelBtn = e.target.closest(".acn-cancel-btn");
+            if (cancelBtn && !cancelBtn.classList.contains("disabled")) {
+                const payee = cancelBtn.getAttribute("data-payee");
+                const cta = cancelBtn.getAttribute("data-cta");
+                acnCancelPayment(cancelBtn, payee, cta);
+            }
+
+            // 2. Clic en los "Dots" de navegación
+            const dotBtn = e.target.closest(".acn-dot");
+            if (dotBtn) {
+                const trackId = dotBtn.getAttribute("data-track-id");
+                const index = parseInt(dotBtn.getAttribute("data-index") || "0");
+                
+                // Navegamos por el Shadow DOM del chat para buscar el carrusel inyectado
+                const chatMessenger = document.querySelector("chat-messenger");
+                const chatContainer = chatMessenger?.shadowRoot?.querySelector("df-messenger-chat") 
+                                   || chatMessenger?.shadowRoot?.querySelector("chat-messenger-chat");
+                
+                if (chatContainer) {
+                    const track = chatContainer.shadowRoot?.getElementById(trackId);
+                    if (track) {
+                        acnCarouselGoTo(track, index);
+                    }
+                }
+            }
+        });
+
+        // Evento scroll (fase de captura) para actualizar dots de manera dinámica
+        document.addEventListener("scroll", (e) => {
+            if (e.target && e.target.classList && e.target.classList.contains("acn-carousel-track")) {
+                const track = e.target;
+                const card = track.firstElementChild;
+                const cardWidth = card ? card.offsetWidth + 10 : 162;
+                const index = Math.round(track.scrollLeft / cardWidth);
+                const total = parseInt(track.getAttribute("data-total") || "0");
+                acnCarouselUpdateDots(track.id, index, total);
+            }
+        }, true);
 
         /* ════════════════════════════════════════════════════════════════
            SECCIÓN 5 — INICIALIZACIÓN PRINCIPAL
         ════════════════════════════════════════════════════════════════ */
         window.addEventListener("chat-messenger-loaded", () => {
             console.log("Widget loaded. Checking handoff context...");
-
             const isVoiceHandoff = !!(kycRequestId && customerDocId);
             console.log("Is Voice Handoff Active?:", isVoiceHandoff);
 
@@ -328,37 +309,25 @@
             const chatEl        = document.querySelector("chat-messenger");
             const loadingScreen = document.getElementById("loadingScreen");
 
-            /* ── INTERCEPTOR DE CUSTOM WIDGETS ──────────────────────────
-               Evento confirmado: chat-messenger-response-received
-               (no es df-response-received — ese es para df-messenger estándar)
-
-               Ruta del payload:
-               event.detail.raw.outputs[n]
-                 .diagnosticInfo.messages[n]
-                   .chunks[n].toolCall.args.payload
-            ────────────────────────────────────────────────────────── */
+            /* ── INTERCEPTOR DE CUSTOM WIDGETS DE CES ────────── */
             chatEl.addEventListener("chat-messenger-response-received", (event) => {
                 console.log("=== chat-messenger-response-received ===");
-
                 const outputs = event.detail?.raw?.outputs || [];
-
+                
                 outputs.forEach(output => {
                     const messages = output?.diagnosticInfo?.messages || [];
-
                     messages.forEach(message => {
                         const chunks = message.chunks || [];
-
                         chunks.forEach(chunk => {
                             const toolCall = chunk.toolCall;
                             if (!toolCall) return;
 
                             const toolName = toolCall.displayName || toolCall.name || "";
                             const payload  = toolCall.args?.payload;
-
                             console.log("ToolCall encontrado:", toolName, payload);
+
                             if (!payload) return;
 
-                            // Detectar payment carousel por nombre o por campos
                             const isPaymentCarousel =
                                 toolName === "acn-payment-carousel" ||
                                 payload.name === "acn-payment-carousel" ||
@@ -371,11 +340,6 @@
                                     html: buildPaymentCarousel(payload)
                                 }]);
                             }
-
-                            // Para agregar un nuevo widget:
-                            // else if (payload.name === "mi_nuevo_widget") {
-                            //     chatEl.renderCustomCard([{ type: "html", html: buildMiWidget(payload) }]);
-                            // }
                         });
                     });
                 });
@@ -404,14 +368,12 @@
                         chatEl.sendMessage({ text: kycPayload });
                     }
                 }, 1500);
-
             // CASO B: flujo estándar web
             } else {
                 console.warn("No KYC params detected. Launching in standard user mode.");
                 showChatUI();
             }
         });
-
     </script>
 </body>
 </html>
