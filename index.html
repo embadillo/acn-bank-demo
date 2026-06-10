@@ -63,9 +63,14 @@
         /* ════════════════════════════════════════════════════════════════
            SECCIÓN 1 — PARÁMETROS DE URL (KYC voice handoff)
         ════════════════════════════════════════════════════════════════ */
-        const urlParams     = new URLSearchParams(window.location.search);
-        const kycRequestId  = urlParams.get('kyc_request_id');
-        const customerDocId = urlParams.get('customer_doc_id');
+        const urlParams = new URLSearchParams(window.location.search);
+
+        const kycRequestId =
+        urlParams.get('r') || urlParams.get('kyc_request_id');
+
+        const customerDocId =
+        urlParams.get('c') || urlParams.get('customer_doc_id');
+
         console.log("=== KYC Parameters Detected ===");
         console.log("KYC Request ID:", kycRequestId);
         console.log("Customer Doc ID:", customerDocId);
