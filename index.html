@@ -64,19 +64,11 @@
            SECCIÓN 1 — PARÁMETROS DE URL (KYC voice handoff)
         ════════════════════════════════════════════════════════════════ */
         const urlParams = new URLSearchParams(window.location.search);
-
-        const kycRequestId =
-        urlParams.get('r') || urlParams.get('kyc_request_id');
-
-        const customerDocId =
-        urlParams.get('c') || urlParams.get('customer_doc_id');
-
-        console.log("=== KYC Parameters Detected ===");
-        console.log("KYC Request ID:", kycRequestId);
-        console.log("Customer Doc ID:", customerDocId);
+        const kycRequestId = urlParams.get('r') || urlParams.get('kyc_request_id');
+        const customerDocId = urlParams.get('c') || urlParams.get('customer_doc_id');
 
         /* ════════════════════════════════════════════════════════════════
-           SECCIÓN 2 — LOGOS
+           SECCIÓN 2 — LOGOS (FALLBACK)
         ════════════════════════════════════════════════════════════════ */
         const BASE = "https://raw.githubusercontent.com/embadillo/acn-bank-assets/refs/heads/main/";
         const PAYEE_LOGOS = {
@@ -101,28 +93,26 @@
             if (p.includes("rogers") || p.includes("bell") || p.includes("telus"))     return "📱";
             if (p.includes("gas") || p.includes("enbridge"))                           return "🔥";
             if (p.includes("tax") || p.includes("government") || p.includes("city"))   return "🏛️";
-            if (p.includes("water"))                                                    return "💧";
-            if (p.includes("insurance"))                                                return "🛡️";
             return "🏦";
         }
 
         /* ════════════════════════════════════════════════════════════════
-           SECCIÓN 3 — BUILDER: buildPaymentCarousel (UI Premium)
+           SECCIÓN 3 — WIDGET BUILDERS (HTML DINÁMICO)
         ════════════════════════════════════════════════════════════════ */
+
+        // WIDGET 1: CAROUSEL DE PAGOS PROGRAMADOS
         function buildPaymentCarousel(payload) {
             const payments = payload.payments || [];
             const id = "carousel_" + Date.now();
             
-            const cards = payments.map((p, index) => {
+            const cards = payments.map((p) => {
                 const status     = (p.status || "").toLowerCase();
                 const badgeClass = status === "processing" ? "acn-badge-processing"
                                  : status === "cancelled"  ? "acn-badge-cancelled"
                                  : "acn-badge-scheduled";
                 const badgeLabel = p.status ? p.status.charAt(0).toUpperCase() + p.status.slice(1) : "Scheduled";
 
-                const logoUrl  = getPayeeLogo(p.payee_name);
-                
-                // Icono más grande (44px)
+                const logoUrl  = p.logo_url || getPayeeLogo(p.payee_name);
                 const iconHtml = logoUrl
                     ? `<img src="${logoUrl}" alt="${p.payee_name}" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">`
                     : `<span style="font-size:20px">${getPayeeEmoji(p.payee_name)}</span>`;
@@ -133,158 +123,225 @@
                     "acn-badge-cancelled":  "background:#fde8e8;color:#9b1c1c;",
                 };
 
-                // Añadimos data-action="cancel" para blindar la detección del clic
                 const btnHtml = p.cancellable
-                    ? `<button data-action="cancel"
-                               data-payee="${escapeAttr(p.payee_name)}"
-                               data-cta="${escapeAttr(p.cta_value)}"
-                               style="width:100%;padding:9px 0;border:1px solid #d1d5db;border-radius:8px;
-                                      background:transparent;font-size:13px;font-weight:500;color:#1a1a2e;
-                                      cursor:pointer;margin-top:auto;text-align:center;display:flex;justify-content:center;
-                                      transition: background 0.15s, border-color 0.15s;">
+                    ? `<button data-action="cancel" data-payee="${escapeAttr(p.payee_name)}" data-cta="${escapeAttr(p.cta_value)}"
+                               style="width:100%;padding:9px 0;border:1px solid #d1d5db;border-radius:8px;background:transparent;font-size:13px;font-weight:500;color:#1a1a2e;cursor:pointer;margin-top:auto;text-align:center;display:flex;justify-content:center;transition: background 0.15s, border-color 0.15s;">
                            ${p.cta_label || "Cancel payment"}
                        </button>`
                     : `<button data-action="cancel" data-disabled="true"
-                               style="width:100%;padding:9px 0;border:1px solid #e5e7eb;border-radius:8px;
-                                      background:transparent;font-size:13px;color:#9ca3af;cursor:default;pointer-events:none;
-                                      text-align:center;display:flex;justify-content:center;margin-top:auto;">
+                               style="width:100%;padding:9px 0;border:1px solid #e5e7eb;border-radius:8px;background:transparent;font-size:13px;color:#9ca3af;cursor:default;pointer-events:none;text-align:center;display:flex;justify-content:center;margin-top:auto;">
                            ${p.cta_label || badgeLabel}
                        </button>`;
 
-                // Tarjetas con ancho 220px
                 return `
-                    <div style="background:#fff;border:1px solid #e0e4ea;border-radius:16px;padding:16px;
-                                width:220px;flex: 0 0 auto;scroll-snap-align:start;
-                                display:flex;flex-direction:column;gap:10px;box-sizing:border-box;">
-                        
+                    <div style="background:#fff;border:1px solid #e0e4ea;border-radius:16px;padding:16px;width:220px;flex: 0 0 auto;scroll-snap-align:start;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;">
                         <div style="display:flex;align-items:center;gap:10px;min-height:48px;">
-                            <div style="width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid #e5e7eb;
-                                        display:flex;align-items:center;justify-content:center;
-                                        flex-shrink:0;overflow:hidden;box-sizing:border-box;padding:3px;">
+                            <div style="width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;box-sizing:border-box;padding:3px;">
                                 ${iconHtml}
                             </div>
                             <div style="font-size:14px;font-weight:600;color:#1a1a2e;line-height:1.2;white-space:normal;word-break:break-word;">
                                 ${p.payee_name || ""}
                             </div>
                         </div>
-
-                        <span style="display:inline-block;padding:3px 10px;border-radius:20px;
-                                     font-size:12px;font-weight:500;width:fit-content;
-                                     ${badgeColors[badgeClass] || badgeColors['acn-badge-scheduled']}">
-                            ${badgeLabel}
-                        </span>
-
-                        <div style="font-size:13px;color:#374151;display:flex;align-items:center;gap:5px;margin-top:2px;">
-                            📅 ${p.display_date || ""}
-                        </div>
-                        <div style="font-size:13px;font-weight:600;color:#374151;display:flex;align-items:center;gap:5px;">
-                            💲 ${p.currency || "CAD"} ${p.amount || ""}
-                        </div>
-                        
+                        <span style="display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500;width:fit-content;${badgeColors[badgeClass] || badgeColors['acn-badge-scheduled']}">${badgeLabel}</span>
+                        <div style="font-size:13px;color:#374151;display:flex;align-items:center;gap:5px;margin-top:2px;">📅 ${p.display_date || ""}</div>
+                        <div style="font-size:13px;font-weight:600;color:#374151;display:flex;align-items:center;gap:5px;">💲 ${p.currency || "CAD"} ${p.amount || ""}</div>
                         ${btnHtml}
                     </div>
                 `;
             }).join("");
 
-            // Flecha posicionada correctamente para que no solape
             const rightArrow = payments.length > 2 ? `
                 <button data-action="next" data-track-id="${id}"
-                        style="position:absolute;right:0px;top:50%;transform:translateY(-50%);z-index:10;
-                               width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid #d1d5db;
-                               box-shadow:-2px 0 8px rgba(0,0,0,0.1);cursor:pointer;display:flex;align-items:center;
-                               justify-content:center;color:#1a56db;font-weight:bold;font-size:16px;padding-left:3px;">
+                        style="position:absolute;right:0px;top:45%;transform:translateY(-50%);z-index:10;width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid #d1d5db;box-shadow:-2px 0 8px rgba(0,0,0,0.1);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#1a56db;font-weight:bold;font-size:16px;padding-left:3px;transition: opacity 0.2s;">
                     ❯
                 </button>
             ` : "";
 
             return `
-                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-                            width:100%;box-sizing:border-box;overflow:hidden;padding: 5px 0;">
-                    
-                    <div style="font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:4px;">
-                        📅 ${payload.title || "Upcoming scheduled payments"}
-                    </div>
-                    <div style="font-size:13px;color:#6b7280;margin-bottom:12px;">
-                        ${payload.subtitle || ""}
-                    </div>
-                    
+                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;width:100%;box-sizing:border-box;overflow:hidden;padding: 5px 0;">
+                    <div style="font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:4px;">📅 ${payload.title || "Upcoming scheduled payments"}</div>
+                    <div style="font-size:13px;color:#6b7280;margin-bottom:12px;">${payload.subtitle || ""}</div>
                     <div style="position:relative;width:100%;">
-                        <!-- Track con padding-right de 45px para dar espacio a la flecha -->
-                        <div id="${id}"
-                             style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;
-                                    scrollbar-width:none;padding-bottom:10px;padding-right:45px;">
+                        <div id="${id}" class="acn-carousel-track" data-arrow-id="arrow_${id}"
+                             style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:10px;padding-right:45px;scroll-behavior: smooth;">
                             ${cards}
                         </div>
-                        ${rightArrow}
+                        <div id="arrow_${id}">${rightArrow}</div>
                     </div>
                 </div>
             `;
         }
 
+        // WIDGET 2: PAYEE SELECTOR (Lista vertical)
+        function buildPayeeSelector(payload) {
+            const payees = payload.payees || [];
+            
+            const rows = payees.map((p) => {
+                const logoUrl  = p.logo_url || getPayeeLogo(p.payee_name);
+                const iconHtml = logoUrl
+                    ? `<img src="${logoUrl}" alt="${p.payee_name}" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">`
+                    : `<span style="font-size:16px">${getPayeeEmoji(p.payee_name)}</span>`;
+
+                return `
+                    <div data-action="select_payee" data-cta="${escapeAttr(p.cta_value)}"
+                         style="background:#fff;border-bottom:1px solid #e0e4ea;padding:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background 0.15s;">
+                        <div style="width:36px;height:36px;border-radius:50%;background:#f4f6f9;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;padding:2px;">
+                            ${iconHtml}
+                        </div>
+                        <div style="flex-grow:1;">
+                            <div style="font-size:14px;font-weight:600;color:#1a1a2e;">${p.payee_name || ""}</div>
+                            <div style="font-size:12px;color:#6b7280;">Acct: ${p.account_number || "****"}</div>
+                        </div>
+                        <div style="color:#1a56db;font-size:14px;">❯</div>
+                    </div>
+                `;
+            }).join("");
+
+            return `
+                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;width:100%;box-sizing:border-box;">
+                    <div style="font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:4px;">💳 ${payload.title || "Your Saved Payees"}</div>
+                    <div style="font-size:13px;color:#6b7280;margin-bottom:12px;">${payload.subtitle || "Select a payee to continue."}</div>
+                    <div style="border:1px solid #e0e4ea;border-radius:12px;overflow:hidden;">
+                        ${rows}
+                    </div>
+                </div>
+            `;
+        }
+
+        // WIDGET 3: PAYMENT RECEIPT
+        function buildPaymentReceipt(payload) {
+            const logoUrl  = payload.logo_url || getPayeeLogo(payload.payee_name);
+            const iconHtml = logoUrl
+                ? `<img src="${logoUrl}" alt="${payload.payee_name}" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">`
+                : `<span style="font-size:24px">${getPayeeEmoji(payload.payee_name)}</span>`;
+
+            const status = (payload.status || "success").toLowerCase();
+            const statusColor = status === "cancelled" ? "#9b1c1c" : "#2d6a2f";
+            const statusBg = status === "cancelled" ? "#fde8e8" : "#e7f3e8";
+
+            return `
+                <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;width:100%;box-sizing:border-box;">
+                    <div style="background:#fff;border:1px solid #e0e4ea;border-radius:16px;padding:20px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+                        <div style="width:56px;height:56px;margin:0 auto 12px;border-radius:50%;background:#f4f6f9;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:3px;">
+                            ${iconHtml}
+                        </div>
+                        <div style="font-size:18px;font-weight:600;color:#1a1a2e;margin-bottom:4px;">${payload.title || "Transaction Receipt"}</div>
+                        <div style="display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:500;background:${statusBg};color:${statusColor};margin-bottom:16px;">
+                            ${payload.status ? payload.status.toUpperCase() : "SUCCESS"}
+                        </div>
+                        
+                        <div style="border-top:1px dashed #e0e4ea;border-bottom:1px dashed #e0e4ea;padding:16px 0;margin-bottom:16px;text-align:left;">
+                            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                                <span style="color:#6b7280;font-size:13px;">Payee</span>
+                                <span style="font-weight:600;color:#1a1a2e;font-size:13px;">${payload.payee_name || ""}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                                <span style="color:#6b7280;font-size:13px;">Amount</span>
+                                <span style="font-weight:600;color:#1a1a2e;font-size:13px;">${payload.currency || "CAD"} ${payload.amount || ""}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                                <span style="color:#6b7280;font-size:13px;">Date / Freq</span>
+                                <span style="font-weight:600;color:#1a1a2e;font-size:13px;">${payload.date_or_frequency || ""}</span>
+                            </div>
+                            <div style="display:flex;justify-content:space-between;">
+                                <span style="color:#6b7280;font-size:13px;">Ref ID</span>
+                                <span style="font-family:monospace;color:#1a1a2e;font-size:12px;background:#f4f6f9;padding:2px 6px;border-radius:4px;">${payload.receipt_id || ""}</span>
+                            </div>
+                        </div>
+                        <div style="font-size:11px;color:#9ca3af;">Thank you for using ACN Bank.</div>
+                    </div>
+                </div>
+            `;
+        }
+
+
         /* ════════════════════════════════════════════════════════════════
-           SECCIÓN 4 — HELPERS Y DELEGACIÓN DE EVENTOS (SHADOW DOM FIX)
+           SECCIÓN 4 — HELPERS Y EVENT DELEGATION
         ════════════════════════════════════════════════════════════════ */
         function acnSendMessage(text) {
             const chatEl = document.querySelector("chat-messenger");
-            if (chatEl && typeof chatEl.sendMessage === "function") {
+            if (chatEl && typeof chatEl.sendQuery === "function") {
+                chatEl.sendQuery(text);
+            } else if (chatEl && typeof chatEl.sendMessage === "function") {
                 chatEl.sendMessage({ text });
             }
-        }
-
-        function acnCancelPayment(btn, payeeName, ctaValue) {
-            btn.textContent = "Cancelled";
-            btn.setAttribute("data-disabled", "true");
-            btn.style.color = "#9b1c1c";
-            btn.style.borderColor = "#fca5a5";
-            btn.style.pointerEvents = "none";
-            btn.style.cursor = "default";
-            acnSendMessage(ctaValue || "cancel_payment:" + payeeName);
         }
 
         function escapeAttr(str) {
             return (str || "").replace(/'/g, "\\\\'").replace(/"/g, "&quot;");
         }
 
-        /* ── INTERCEPTOR DE CLICS (Inmune a Shadow DOM y DOMPurify) ── */
-        document.addEventListener("click", (e) => {
-            // e.composedPath() nos permite penetrar el Shadow DOM y ver el botón real clickeado
+        function handleWidgetInteractions(e) {
             const path = e.composedPath();
 
-            // 1. Clic en botón "Cancel Payment"
+            // 1. Clic en botón "Cancel Payment" (Carousel)
             const cancelBtn = path.find(el => el.getAttribute && el.getAttribute("data-action") === "cancel");
             if (cancelBtn && cancelBtn.getAttribute("data-disabled") !== "true") {
+                e.preventDefault();
+                cancelBtn.textContent = "Cancelled";
+                cancelBtn.setAttribute("data-disabled", "true");
+                cancelBtn.style.color = "#9b1c1c";
+                cancelBtn.style.borderColor = "#fca5a5";
+                cancelBtn.style.pointerEvents = "none";
+                cancelBtn.style.cursor = "default";
                 const payee = cancelBtn.getAttribute("data-payee");
                 const cta = cancelBtn.getAttribute("data-cta");
-                acnCancelPayment(cancelBtn, payee, cta);
+                acnSendMessage(cta || "cancel_payment:" + payee);
             }
 
-            // 2. Clic en Flecha Siguiente del Carrusel
+            // 2. Clic en "Select Payee" (Payee Selector)
+            const selectBtn = path.find(el => el.getAttribute && el.getAttribute("data-action") === "select_payee");
+            if (selectBtn) {
+                e.preventDefault();
+                selectBtn.style.background = "#f0f4ff";
+                const cta = selectBtn.getAttribute("data-cta");
+                acnSendMessage(cta);
+            }
+
+            // 3. Clic en Flecha Siguiente (Carousel)
             const nextBtn = path.find(el => el.getAttribute && el.getAttribute("data-action") === "next");
             if (nextBtn) {
+                e.preventDefault();
                 const trackId = nextBtn.getAttribute("data-track-id");
-                
-                // Navegamos al Shadow DOM para encontrar la lista
                 const chatMessenger = document.querySelector("chat-messenger");
-                const chatContainer = chatMessenger?.shadowRoot?.querySelector("df-messenger-chat") 
-                                   || chatMessenger?.shadowRoot?.querySelector("chat-messenger-chat");
-                
+                const chatContainer = chatMessenger?.shadowRoot?.querySelector("df-messenger-chat") || chatMessenger?.shadowRoot?.querySelector("chat-messenger-chat");
                 if (chatContainer) {
                     const track = chatContainer.shadowRoot?.getElementById(trackId);
                     if (track) {
                         const card = track.firstElementChild;
-                        // Ancho de la tarjeta (220) + Gap (12) = 232px de desplazamiento
                         const scrollAmount = card ? card.offsetWidth + 12 : 232; 
                         track.scrollBy({ left: scrollAmount, behavior: "smooth" });
                     }
                 }
             }
-        });
+        }
+
+        // Lógica de Scroll (Para ocultar la flecha si llegas al final)
+        document.addEventListener("scroll", (e) => {
+            const track = e.target;
+            if (track && track.classList && track.classList.contains("acn-carousel-track")) {
+                const arrowId = track.getAttribute("data-arrow-id");
+                if (arrowId) {
+                    const arrowContainer = track.parentElement.querySelector(`#${arrowId}`);
+                    if (arrowContainer && arrowContainer.firstElementChild) {
+                        const isAtEnd = track.scrollWidth - track.scrollLeft <= track.clientWidth + 5;
+                        arrowContainer.firstElementChild.style.opacity = isAtEnd ? "0" : "1";
+                        arrowContainer.firstElementChild.style.pointerEvents = isAtEnd ? "none" : "auto";
+                    }
+                }
+            }
+        }, true);
+
+        // Escucha unificada para Web y Móvil
+        document.addEventListener("click", handleWidgetInteractions);
+        document.addEventListener("touchend", handleWidgetInteractions, { passive: false });
+
 
         /* ════════════════════════════════════════════════════════════════
-           SECCIÓN 5 — INICIALIZACIÓN PRINCIPAL
+           SECCIÓN 5 — INICIALIZACIÓN Y ENRUTAMIENTO WIDGETS
         ════════════════════════════════════════════════════════════════ */
         window.addEventListener("chat-messenger-loaded", () => {
-            console.log("Widget loaded. Checking handoff context...");
             const isVoiceHandoff = !!(kycRequestId && customerDocId);
             
             chatSdk.registerContext(
@@ -298,10 +355,8 @@
             const chatEl        = document.querySelector("chat-messenger");
             const loadingScreen = document.getElementById("loadingScreen");
 
-            /* ── INTERCEPTOR QUIRÚRGICO DE CES ────────── */
             chatEl.addEventListener("chat-messenger-response-received", (event) => {
                 const outputs = event.detail?.raw?.outputs || [];
-                
                 outputs.forEach(output => {
                     const messages = output?.diagnosticInfo?.messages || [];
                     messages.forEach(message => {
@@ -312,26 +367,25 @@
 
                             const toolName = toolCall.displayName || toolCall.name || "";
                             const payload  = toolCall.args?.payload;
-
                             if (!payload) return;
 
-                            const isPaymentCarousel =
-                                toolName === "acn-payment-carousel" ||
-                                payload.name === "acn-payment-carousel" ||
-                                Array.isArray(payload.payments);
+                            // ENRUTADOR DINÁMICO DE WIDGETS
+                            const widgetName = payload.name || toolName;
 
-                            if (isPaymentCarousel) {
-                                chatEl.renderCustomCard([{
-                                    type: "html",
-                                    html: buildPaymentCarousel(payload)
-                                }]);
+                            if (widgetName === "acn-payment-carousel") {
+                                chatEl.renderCustomCard([{ type: "html", html: buildPaymentCarousel(payload) }]);
+                            } 
+                            else if (widgetName === "acn-payee-selector") {
+                                chatEl.renderCustomCard([{ type: "html", html: buildPayeeSelector(payload) }]);
+                            }
+                            else if (widgetName === "acn-payment-receipt") {
+                                chatEl.renderCustomCard([{ type: "html", html: buildPaymentReceipt(payload) }]);
                             }
                         });
                     });
                 });
             });
 
-            /* ── MOSTRAR CHAT Y FLUJO KYC ───────────────────────── */
             const showChatUI = () => {
                 if (chatEl) {
                     chatEl.style.display = "block";
@@ -348,8 +402,6 @@
                     showChatUI();
                     if (chatEl && typeof chatEl.sendQuery === "function") {
                         chatEl.sendQuery(kycPayload);
-                    } else if (chatEl && typeof chatEl.sendMessage === "function") {
-                        chatEl.sendMessage({ text: kycPayload });
                     }
                 }, 1500);
             } else {
