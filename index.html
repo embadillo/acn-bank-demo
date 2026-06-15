@@ -111,30 +111,28 @@
                                  : status === "cancelled"  ? "acn-badge-cancelled"
                                  : "acn-badge-scheduled";
                 const badgeLabel = p.status ? p.status.charAt(0).toUpperCase() + p.status.slice(1) : "Scheduled";
-
                 const logoUrl  = p.logo_url || getPayeeLogo(p.payee_name);
                 const iconHtml = logoUrl
                     ? `<img src="${logoUrl}" alt="${p.payee_name}" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">`
                     : `<span style="font-size:20px">${getPayeeEmoji(p.payee_name)}</span>`;
-
                 const badgeColors = {
                     "acn-badge-scheduled":  "background:#e7f3e8;color:#2d6a2f;",
                     "acn-badge-processing": "background:#fef3cd;color:#8a5a00;",
                     "acn-badge-cancelled":  "background:#fde8e8;color:#9b1c1c;",
                 };
-
+                
+                // Agregamos clases específicas y z-index explícito para asegurar interactividad
                 const btnHtml = p.cancellable
-                    ? `<button data-action="cancel" data-payee="${escapeAttr(p.payee_name)}" data-cta="${escapeAttr(p.cta_value)}"
-                               style="width:100%;padding:9px 0;border:1px solid #d1d5db;border-radius:8px;background:transparent;font-size:13px;font-weight:500;color:#1a1a2e;cursor:pointer;margin-top:auto;text-align:center;display:flex;justify-content:center;transition: background 0.15s, border-color 0.15s;">
+                    ? `<button class="acn-action-cancel" data-payee="${escapeAttr(p.payee_name)}" data-cta="${escapeAttr(p.cta_value)}"
+                               style="width:100%;padding:9px 0;border:1px solid #d1d5db;border-radius:8px;background:transparent;font-size:13px;font-weight:500;color:#1a1a2e;cursor:pointer;margin-top:auto;text-align:center;display:flex;justify-content:center;transition: background 0.15s, border-color 0.15s; position:relative; z-index:20; pointer-events:auto;">
                            ${p.cta_label || "Cancel payment"}
                        </button>`
-                    : `<button data-action="cancel" data-disabled="true"
-                               style="width:100%;padding:9px 0;border:1px solid #e5e7eb;border-radius:8px;background:transparent;font-size:13px;color:#9ca3af;cursor:default;pointer-events:none;text-align:center;display:flex;justify-content:center;margin-top:auto;">
+                    : `<button class="acn-action-cancel" data-disabled="true"
+                               style="width:100%;padding:9px 0;border:1px solid #e5e7eb;border-radius:8px;background:transparent;font-size:13px;color:#9ca3af;cursor:default;pointer-events:none;text-align:center;display:flex;justify-content:center;margin-top:auto; position:relative; z-index:20;">
                            ${p.cta_label || badgeLabel}
                        </button>`;
-
                 return `
-                    <div style="background:#fff;border:1px solid #e0e4ea;border-radius:16px;padding:16px;width:220px;flex: 0 0 auto;scroll-snap-align:start;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;">
+                    <div style="background:#fff;border:1px solid #e0e4ea;border-radius:16px;padding:16px;width:220px;flex: 0 0 auto;scroll-snap-align:start;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;position:relative;">
                         <div style="display:flex;align-items:center;gap:10px;min-height:48px;">
                             <div style="width:44px;height:44px;border-radius:50%;background:#fff;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;box-sizing:border-box;padding:3px;">
                                 ${iconHtml}
@@ -151,9 +149,10 @@
                 `;
             }).join("");
 
+            // Flecha con clase acn-arrow-btn y z-index 30
             const rightArrow = payments.length > 2 ? `
-                <button data-action="next" data-track-id="${id}"
-                        style="position:absolute;right:0px;top:45%;transform:translateY(-50%);z-index:10;width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid #d1d5db;box-shadow:-2px 0 8px rgba(0,0,0,0.1);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#1a56db;font-weight:bold;font-size:16px;padding-left:3px;transition: opacity 0.2s;">
+                <button class="acn-arrow-btn" data-track-id="${id}"
+                        style="position:absolute;right:0px;top:45%;transform:translateY(-50%);z-index:30;width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid #d1d5db;box-shadow:-2px 0 8px rgba(0,0,0,0.1);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#1a56db;font-weight:bold;font-size:16px;padding-left:3px;transition: opacity 0.2s; pointer-events:auto;">
                     ❯
                 </button>
             ` : "";
@@ -167,7 +166,7 @@
                              style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:10px;padding-right:45px;scroll-behavior: smooth;">
                             ${cards}
                         </div>
-                        <div id="arrow_${id}">${rightArrow}</div>
+                        <div id="arrow_${id}" style="pointer-events:none;">${rightArrow}</div>
                     </div>
                 </div>
             `;
@@ -180,20 +179,19 @@
             const rows = payees.map((p) => {
                 const logoUrl  = p.logo_url || getPayeeLogo(p.payee_name);
                 const iconHtml = logoUrl
-                    ? `<img src="${logoUrl}" alt="${p.payee_name}" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">`
-                    : `<span style="font-size:16px">${getPayeeEmoji(p.payee_name)}</span>`;
-
+                    ? `<img src="${logoUrl}" alt="${p.payee_name}" style="width:100%;height:100%;object-fit:contain;border-radius:50%; pointer-events:none;">`
+                    : `<span style="font-size:16px; pointer-events:none;">${getPayeeEmoji(p.payee_name)}</span>`;
                 return `
-                    <div data-action="select_payee" data-cta="${escapeAttr(p.cta_value)}"
-                         style="background:#fff;border-bottom:1px solid #e0e4ea;padding:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background 0.15s;">
-                        <div style="width:36px;height:36px;border-radius:50%;background:#f4f6f9;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;padding:2px;">
+                    <div class="acn-action-select" data-cta="${escapeAttr(p.cta_value)}"
+                         style="background:#fff;border-bottom:1px solid #e0e4ea;padding:12px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background 0.15s; position:relative; z-index:20; pointer-events:auto;">
+                        <div style="width:36px;height:36px;border-radius:50%;background:#f4f6f9;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;padding:2px; pointer-events:none;">
                             ${iconHtml}
                         </div>
-                        <div style="flex-grow:1;">
-                            <div style="font-size:14px;font-weight:600;color:#1a1a2e;">${p.payee_name || ""}</div>
-                            <div style="font-size:12px;color:#6b7280;">Acct: ${p.account_number || "****"}</div>
+                        <div style="flex-grow:1; pointer-events:none;">
+                            <div style="font-size:14px;font-weight:600;color:#1a1a2e; pointer-events:none;">${p.payee_name || ""}</div>
+                            <div style="font-size:12px;color:#6b7280; pointer-events:none;">Acct: ${p.account_number || "****"}</div>
                         </div>
-                        <div style="color:#1a56db;font-size:14px;">❯</div>
+                        <div style="color:#1a56db;font-size:14px; pointer-events:none;">❯</div>
                     </div>
                 `;
             }).join("");
@@ -215,11 +213,9 @@
             const iconHtml = logoUrl
                 ? `<img src="${logoUrl}" alt="${payload.payee_name}" style="width:100%;height:100%;object-fit:contain;border-radius:50%;">`
                 : `<span style="font-size:24px">${getPayeeEmoji(payload.payee_name)}</span>`;
-
             const status = (payload.status || "success").toLowerCase();
             const statusColor = status === "cancelled" ? "#9b1c1c" : "#2d6a2f";
             const statusBg = status === "cancelled" ? "#fde8e8" : "#e7f3e8";
-
             return `
                 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;width:100%;box-sizing:border-box;">
                     <div style="background:#fff;border:1px solid #e0e4ea;border-radius:16px;padding:20px;text-align:center;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
@@ -255,7 +251,6 @@
             `;
         }
 
-
         /* ════════════════════════════════════════════════════════════════
            SECCIÓN 4 — HELPERS Y EVENT DELEGATION
         ════════════════════════════════════════════════════════════════ */
@@ -268,44 +263,33 @@
             }
         }
 
+        // Función de escape de atributos HTML 100% segura para DOMPurify
         function escapeAttr(str) {
-            return (str || "").replace(/'/g, "\\\\'").replace(/"/g, "&quot;");
+            if (!str) return "";
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/'/g, "&#39;")
+                .replace(/"/g, "&quot;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
         }
 
+        // Manejador centralizado en FASE DE CAPTURA para penetrar Shadow DOMs complejos de CES
         function handleWidgetInteractions(e) {
-            const path = e.composedPath();
+            const target = e.target;
+            const path = e.composedPath ? e.composedPath() : [];
 
-            // 1. Clic en botón "Cancel Payment" (Carousel)
-            const cancelBtn = path.find(el => el.getAttribute && el.getAttribute("data-action") === "cancel");
-            if (cancelBtn && cancelBtn.getAttribute("data-disabled") !== "true") {
-                e.preventDefault();
-                cancelBtn.textContent = "Cancelled";
-                cancelBtn.setAttribute("data-disabled", "true");
-                cancelBtn.style.color = "#9b1c1c";
-                cancelBtn.style.borderColor = "#fca5a5";
-                cancelBtn.style.pointerEvents = "none";
-                cancelBtn.style.cursor = "default";
-                const payee = cancelBtn.getAttribute("data-payee");
-                const cta = cancelBtn.getAttribute("data-cta");
-                acnSendMessage(cta || "cancel_payment:" + payee);
-            }
-
-            // 2. Clic en "Select Payee" (Payee Selector)
-            const selectBtn = path.find(el => el.getAttribute && el.getAttribute("data-action") === "select_payee");
-            if (selectBtn) {
-                e.preventDefault();
-                selectBtn.style.background = "#f0f4ff";
-                const cta = selectBtn.getAttribute("data-cta");
-                acnSendMessage(cta);
-            }
-
-            // 3. Clic en Flecha Siguiente (Carousel)
-            const nextBtn = path.find(el => el.getAttribute && el.getAttribute("data-action") === "next");
+            // 1. Clic en la Flecha Siguiente (Carousel)
+            const nextBtn = target.closest('.acn-arrow-btn') || path.find(el => el.classList && el.classList.contains('acn-arrow-btn'));
             if (nextBtn) {
                 e.preventDefault();
+                e.stopPropagation();
+                
                 const trackId = nextBtn.getAttribute("data-track-id");
                 const chatMessenger = document.querySelector("chat-messenger");
-                const chatContainer = chatMessenger?.shadowRoot?.querySelector("df-messenger-chat") || chatMessenger?.shadowRoot?.querySelector("chat-messenger-chat");
+                const chatContainer = chatMessenger?.shadowRoot?.querySelector("df-messenger-chat") 
+                                   || chatMessenger?.shadowRoot?.querySelector("chat-messenger-chat");
+                
                 if (chatContainer) {
                     const track = chatContainer.shadowRoot?.getElementById(trackId);
                     if (track) {
@@ -314,6 +298,37 @@
                         track.scrollBy({ left: scrollAmount, behavior: "smooth" });
                     }
                 }
+                return;
+            }
+
+            // 2. Clic en botón "Cancel Payment" (Carousel)
+            const cancelBtn = target.closest('.acn-action-cancel') || path.find(el => el.classList && el.classList.contains('acn-action-cancel'));
+            if (cancelBtn && cancelBtn.getAttribute("data-disabled") !== "true") {
+                e.preventDefault();
+                e.stopPropagation();
+
+                cancelBtn.textContent = "Cancelled";
+                cancelBtn.setAttribute("data-disabled", "true");
+                cancelBtn.style.color = "#9b1c1c";
+                cancelBtn.style.borderColor = "#fca5a5";
+                cancelBtn.style.pointerEvents = "none";
+                cancelBtn.style.cursor = "default";
+                
+                const payee = cancelBtn.getAttribute("data-payee");
+                const cta = cancelBtn.getAttribute("data-cta");
+                acnSendMessage(cta || "cancel_payment:" + payee);
+                return;
+            }
+
+            // 3. Clic en la fila de destinatario (Payee Selector)
+            const selectBtn = target.closest('.acn-action-select') || path.find(el => el.classList && el.classList.contains('acn-action-select'));
+            if (selectBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                selectBtn.style.background = "#f0f4ff";
+                const cta = selectBtn.getAttribute("data-cta");
+                acnSendMessage(cta);
             }
         }
 
@@ -323,7 +338,7 @@
             if (track && track.classList && track.classList.contains("acn-carousel-track")) {
                 const arrowId = track.getAttribute("data-arrow-id");
                 if (arrowId) {
-                    const arrowContainer = track.parentElement.querySelector(`#${arrowId}`);
+                    const arrowContainer = track.getRootNode().getElementById(arrowId);
                     if (arrowContainer && arrowContainer.firstElementChild) {
                         const isAtEnd = track.scrollWidth - track.scrollLeft <= track.clientWidth + 5;
                         arrowContainer.firstElementChild.style.opacity = isAtEnd ? "0" : "1";
@@ -333,10 +348,9 @@
             }
         }, true);
 
-        // Escucha unificada para Web y Móvil
-        document.addEventListener("click", handleWidgetInteractions);
-        document.addEventListener("touchend", handleWidgetInteractions, { passive: false });
-
+        // Registro de listeners en Fase de Captura (tercer argumento = true) para ganarle a las intercepciones del SDK
+        document.addEventListener("click", handleWidgetInteractions, true);
+        document.addEventListener("touchend", handleWidgetInteractions, { passive: false, capture: true });
 
         /* ════════════════════════════════════════════════════════════════
            SECCIÓN 5 — INICIALIZACIÓN Y ENRUTAMIENTO WIDGETS
