@@ -121,9 +121,14 @@
                     "acn-badge-cancelled":  "background:#fde8e8;color:#9b1c1c;",
                 };
                 
-                // Agregamos clases específicas y z-index explícito para asegurar interactividad
+                // Construimos el comando cancel_payment de forma robusta localmente con fallback seguro para eliminar el bug del valor 'null'
+                const rawCta = p.cta_value || p.cta_label;
+                const command = (rawCta && rawCta !== "null" && rawCta !== "undefined") 
+                    ? rawCta 
+                    : `cancel_payment:${p.payment_id || p.payee_name || ""}`;
+
                 const btnHtml = p.cancellable
-                    ? `<button class="acn-action-cancel" data-payee="${escapeAttr(p.payee_name)}" data-cta="${escapeAttr(p.cta_value)}"
+                    ? `<button class="acn-action-cancel" data-payee="${p.payee_name || ''}" data-cta="${command}"
                                style="width:100%;padding:9px 0;border:1px solid #d1d5db;border-radius:8px;background:transparent;font-size:13px;font-weight:500;color:#1a1a2e;cursor:pointer;margin-top:auto;text-align:center;display:flex;justify-content:center;transition: background 0.15s, border-color 0.15s; position:relative; z-index:20; pointer-events:auto;">
                            ${p.cta_label || "Cancel payment"}
                        </button>`
@@ -149,7 +154,7 @@
                 `;
             }).join("");
 
-            // Flecha con clase acn-arrow-btn y z-index 30
+            // Flecha con clase acn-arrow-btn, z-index 30 y eventos habilitados
             const rightArrow = payments.length > 2 ? `
                 <button class="acn-arrow-btn" data-track-id="${id}"
                         style="position:absolute;right:0px;top:45%;transform:translateY(-50%);z-index:30;width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid #d1d5db;box-shadow:-2px 0 8px rgba(0,0,0,0.1);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#1a56db;font-weight:bold;font-size:16px;padding-left:3px;transition: opacity 0.2s; pointer-events:auto;">
@@ -252,7 +257,7 @@
         }
 
         /* ════════════════════════════════════════════════════════════════
-           SECCIÓN 4 — HELPERS Y EVENT DELEGATION
+           SECCIÓN 4 — HELPERS Y EVENT DELEGATION (SHADOW DOM BLINDAJE)
         ════════════════════════════════════════════════════════════════ */
         function acnSendMessage(text) {
             const chatEl = document.querySelector("chat-messenger");
@@ -274,7 +279,7 @@
                 .replace(/>/g, "&gt;");
         }
 
-        // Manejador centralizado en FASE DE CAPTURA para penetrar Shadow DOMs complejos de CES
+        // Manejador centralizado en FASE DE CAPTURA para ganarle a las intercepciones del SDK
         function handleWidgetInteractions(e) {
             const target = e.target;
             const path = e.composedPath ? e.composedPath() : [];
@@ -314,9 +319,16 @@
                 cancelBtn.style.pointerEvents = "none";
                 cancelBtn.style.cursor = "default";
                 
-                const payee = cancelBtn.getAttribute("data-payee");
-                const cta = cancelBtn.getAttribute("data-cta");
-                acnSendMessage(cta || "cancel_payment:" + payee);
+                const payee = cancelBtn.getAttribute("data-payee") || "";
+                let cta = cancelBtn.getAttribute("data-cta");
+                
+                // Salvaguarda robusta: si el atributo data-cta vino vacío, lo armamos localmente de inmediato
+                if (!cta || cta === "null" || cta === "undefined") {
+                     cta = "cancel_payment:" + payee;
+                }
+                
+                console.log("Enviando orden de cancelación al bot:", cta);
+                acnSendMessage(cta);
                 return;
             }
 
@@ -348,7 +360,7 @@
             }
         }, true);
 
-        // Registro de listeners en Fase de Captura (tercer argumento = true) para ganarle a las intercepciones del SDK
+        // Registro de listeners en Fase de Captura (tercer argumento = true) para ganarle a las intercepciones del SDK de CES
         document.addEventListener("click", handleWidgetInteractions, true);
         document.addEventListener("touchend", handleWidgetInteractions, { passive: false, capture: true });
 
