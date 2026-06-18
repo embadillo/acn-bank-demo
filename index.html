@@ -271,21 +271,83 @@
         </div>`;
     }
 
+    function deepQuerySelector(selector, root = document) {
+      const found = root.querySelector?.(selector);
+      if (found) return found;
+
+      const all = root.querySelectorAll?.("*") || [];
+      for (const el of all) {
+        if (el.shadowRoot) {
+          const nested = deepQuerySelector(selector, el.shadowRoot);
+          if (nested) return nested;
+        }
+      }
+      return null;
+    }
+
+    function setNativeValue(element, value) {
+      const prototype = Object.getPrototypeOf(element);
+      const valueSetter = Object.getOwnPropertyDescriptor(prototype, "value")?.set;
+
+      if (valueSetter) valueSetter.call(element, value);
+      else element.value = value;
+    }
+
     function acnSendMessage(text) {
-      const { chat, textarea, sendBtn } = getChatParts();
+      const chat = document.querySelector("chat-messenger");
+
       try {
-        if (textarea && sendBtn) {
-          textarea.value = text;
-          textarea.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
-          textarea.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
-          sendBtn.click();
+        const textarea =
+          deepQuerySelector("textarea") ||
+          deepQuerySelector("input[type='text']") ||
+          deepQuerySelector("input");
+
+        if (!textarea) {
+          console.warn("No textarea/input found inside Shadow DOM");
+          if (chat?.sendQuery) chat.sendQuery(text);
           return;
         }
+
+        textarea.focus();
+        setNativeValue(textarea, text);
+
+        textarea.dispatchEvent(new InputEvent("input", {
+          bubbles: true,
+          composed: true,
+          inputType: "insertText",
+          data: text
+        }));
+
+        textarea.dispatchEvent(new Event("change", {
+          bubbles: true,
+          composed: true
+        }));
+
+        setTimeout(() => {
+          textarea.dispatchEvent(new KeyboardEvent("keydown", {
+            key: "Enter",
+            code: "Enter",
+            keyCode: 13,
+            which: 13,
+            bubbles: true,
+            composed: true
+          }));
+
+          const sendBtn =
+            deepQuerySelector("button[aria-label='Send']") ||
+            deepQuerySelector("button[title='Send']") ||
+            deepQuerySelector(".send-icon") ||
+            deepQuerySelector("button");
+
+          if (sendBtn && !sendBtn.disabled) {
+            sendBtn.click();
+          }
+        }, 150);
+
       } catch (err) {
-        console.warn("Visible input injection failed. Falling back to SDK API.", err);
+        console.warn("Visible send failed. Falling back to silent sendQuery.", err);
+        if (chat?.sendQuery) chat.sendQuery(text);
       }
-      if (chat && typeof chat.sendMessage === "function") chat.sendMessage({ text });
-      else if (chat && typeof chat.sendQuery === "function") chat.sendQuery(text);
     }
 
     function updateCarouselArrows(track) {
