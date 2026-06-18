@@ -61,9 +61,8 @@
 
     <script>
         /* ════════════════════════════════════════════════════════════════
-           SECCIÓN 0 — REGISTRO GLOBAL DE MEMORIA (DOMPURIFY BYPASS)
+           SECCIÓN 0 — REGISTRO GLOBAL DE MEMORIA
         ════════════════════════════════════════════════════════════════ */
-        // Aquí guardaremos los payloads de todos los widgets creados.
         window.ACN_WIDGET_REGISTRY = {};
 
         /* ════════════════════════════════════════════════════════════════
@@ -109,16 +108,12 @@
         // WIDGET 1: CAROUSEL DE PAGOS PROGRAMADOS
         function buildPaymentCarousel(payload) {
             const payments = payload.payments || [];
-            
-            // 1. Generamos un ID único y guardamos el array en la memoria de JS
             const wid = "w_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
             window.ACN_WIDGET_REGISTRY[wid] = payments;
             
             const cards = payments.map((p) => {
                 const status     = (p.status || "").toLowerCase();
-                const badgeClass = status === "processing" ? "acn-badge-processing"
-                                 : status === "cancelled"  ? "acn-badge-cancelled"
-                                 : "acn-badge-scheduled";
+                const badgeClass = status === "processing" ? "acn-badge-processing" : status === "cancelled"  ? "acn-badge-cancelled" : "acn-badge-scheduled";
                 const badgeLabel = p.status ? p.status.charAt(0).toUpperCase() + p.status.slice(1) : "Scheduled";
                 const logoUrl  = p.logo_url || getPayeeLogo(p.payee_name);
                 const iconHtml = logoUrl
@@ -131,8 +126,6 @@
                     "acn-badge-cancelled":  "background:#fde8e8;color:#9b1c1c;",
                 };
 
-                // Usamos <div> para el botón para evitar que el sanitizer cambie el renderizado de <button> a <span> y rompa estilos.
-                // Ya no pasamos data-*. Todo se lee por clases y la memoria JS.
                 const btnHtml = p.cancellable
                     ? `<div class="acn-action-cancel" 
                             style="width:100%;padding:9px 0;border:1px solid #d1d5db;border-radius:8px;background:transparent;font-size:13px;font-weight:500;color:#1a1a2e;cursor:pointer;margin-top:auto;text-align:center;display:flex;justify-content:center;transition: background 0.15s, border-color 0.15s; position:relative; z-index:20; pointer-events:auto;">
@@ -161,7 +154,6 @@
                 `;
             }).join("");
 
-            // Flechas como DIVs (y usamos clases para saber dirección)
             const leftArrow = payments.length > 2 ? `
                 <div class="acn-arrow-wrapper acn-arrow-left-wrapper" style="position:absolute;left:-5px;top:45%;transform:translateY(-50%);z-index:30; opacity:0; pointer-events:none; transition:opacity 0.2s;">
                     <div class="acn-arrow-btn left-arrow" style="width:36px;height:36px;border-radius:50%;background:#fff;border:1px solid #d1d5db;box-shadow:2px 0 8px rgba(0,0,0,0.1);cursor:pointer;display:flex;align-items:center;justify-content:center;color:#1a56db;font-weight:bold;font-size:16px;padding-right:3px; pointer-events:auto;">
@@ -178,7 +170,6 @@
                 </div>
             ` : "";
 
-            // Atamos el WID al contenedor principal usando una clase
             return `
                 <div class="acn-widget-root ${wid}" style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;width:100%;box-sizing:border-box;overflow:hidden;padding: 5px 0;">
                     <div style="font-size:15px;font-weight:600;color:#1a1a2e;margin-bottom:4px;">📅 ${payload.title || "Upcoming scheduled payments"}</div>
@@ -194,7 +185,7 @@
             `;
         }
 
-        // WIDGET 2: PAYEE SELECTOR (Lista vertical)
+        // WIDGET 2: PAYEE SELECTOR
         function buildPayeeSelector(payload) {
             const payees = payload.payees || [];
             const wid = "w_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
@@ -276,18 +267,21 @@
         }
 
         /* ════════════════════════════════════════════════════════════════
-           SECCIÓN 4 — HELPERS Y EVENT DELEGATION DOMPURIFY BYPASS
+           SECCIÓN 4 — MANEJADORES DE EVENTOS
         ════════════════════════════════════════════════════════════════ */
+        
+        // Función actualizada para que el comando se dibuje en el chat como una burbuja de usuario.
         function acnSendMessage(text) {
             const chatEl = document.querySelector("chat-messenger");
-            if (chatEl && typeof chatEl.sendQuery === "function") {
+            // Priorizamos sendMessage para que el texto sea visible en la interfaz
+            if (chatEl && typeof chatEl.sendMessage === "function") {
+                chatEl.sendMessage({ text: text });
+            } else if (chatEl && typeof chatEl.sendQuery === "function") {
                 chatEl.sendQuery(text);
-            } else if (chatEl && typeof chatEl.sendMessage === "function") {
-                chatEl.sendMessage({ text });
             }
         }
 
-        // Manejador centralizado basado ÚNICAMENTE en estructura DOM y Memoria JS
+        // Manejador central de clics
         function handleWidgetInteractions(e) {
             const path = e.composedPath ? e.composedPath() : [];
             const findInPath = (cls) => path.find(el => el.classList && el.classList.contains(cls));
@@ -322,16 +316,12 @@
                 const root = findInPath('acn-widget-root');
 
                 if (card && track && root) {
-                    // 1. Obtener la posición visual (Index)
                     const index = Array.from(track.children).indexOf(card);
-                    // 2. Obtener el ID del registro JS guardado en la clase (ej. w_123456)
                     const widClass = Array.from(root.classList).find(c => c.startsWith('w_'));
                     
                     if (index > -1 && widClass && window.ACN_WIDGET_REGISTRY[widClass]) {
-                        // 3. Recuperamos el payload crudo del backend desde JS
                         const item = window.ACN_WIDGET_REGISTRY[widClass][index];
                         
-                        // Mutación Visual Segura
                         cancelBtn.textContent = "Cancelled";
                         cancelBtn.classList.add("acn-disabled");
                         cancelBtn.style.color = "#9b1c1c";
@@ -339,7 +329,7 @@
                         cancelBtn.style.pointerEvents = "none";
                         cancelBtn.style.cursor = "default";
                         
-                        // 4. Armamos el comando de forma nativa e impecable
+                        // Construimos el string exacto que queremos que el usuario vea y el LLM entienda.
                         const cta = item.cta_value || `cancel_payment:${item.payment_id || item.payee_name}`;
                         acnSendMessage(cta);
                     }
@@ -347,7 +337,7 @@
                 return;
             }
 
-            // 3. Clic en la fila de destinatario (Payee Selector)
+            // 3. Clic en "Select Payee" (Payee Selector)
             const selectBtn = findInPath('acn-action-select');
             if (selectBtn) {
                 e.preventDefault();
@@ -362,11 +352,7 @@
 
                     if (index > -1 && widClass && window.ACN_WIDGET_REGISTRY[widClass]) {
                         const item = window.ACN_WIDGET_REGISTRY[widClass][index];
-                        
-                        // Mutación Visual Segura
                         selectBtn.style.background = "#f0f4ff";
-                        
-                        // 4. Armamos el comando nativo
                         const cta = item.cta_value || `select_payee:${item.payee_id || item.payee_name}`;
                         acnSendMessage(cta);
                     }
@@ -375,38 +361,46 @@
             }
         }
 
-        // Lógica de Scroll Dinámico (Relativo a DOM)
-        document.addEventListener("scroll", (e) => {
-            const track = e.target;
-            if (track && track.classList && track.classList.contains("acn-carousel-track")) {
-                const path = e.composedPath ? e.composedPath() : [];
-                const root = path.find(el => el.classList && el.classList.contains('acn-widget-root')) || track.closest('.acn-widget-root');
+        // Lógica de Scroll Infalible: Se adhiere al DOM directamente cuando el usuario toca/pasa el mouse
+        function bindScrollListener(e) {
+            const path = e.composedPath ? e.composedPath() : [];
+            const track = path.find(el => el.classList && el.classList.contains('acn-carousel-track'));
+            
+            if (track && !track.dataset.scrollBound) {
+                track.dataset.scrollBound = "true";
+                track.addEventListener("scroll", (scrollEvent) => {
+                    const root = track.closest('.acn-widget-root') || path.find(el => el.classList && el.classList.contains('acn-widget-root'));
+                    if (root) {
+                        const leftArrowWrapper = root.querySelector('.acn-arrow-left-wrapper');
+                        const rightArrowWrapper = root.querySelector('.acn-arrow-right-wrapper');
+                        
+                        const isAtStart = track.scrollLeft <= 5;
+                        const isAtEnd = track.scrollWidth - track.scrollLeft <= track.clientWidth + 5;
+
+                        if (leftArrowWrapper) {
+                            leftArrowWrapper.style.opacity = isAtStart ? "0" : "1";
+                            leftArrowWrapper.style.pointerEvents = isAtStart ? "none" : "auto";
+                        }
+                        if (rightArrowWrapper) {
+                            rightArrowWrapper.style.opacity = isAtEnd ? "0" : "1";
+                            rightArrowWrapper.style.pointerEvents = isAtEnd ? "none" : "auto";
+                        }
+                    }
+                });
                 
-                if (root) {
-                    const leftArrowWrapper = root.querySelector('.acn-arrow-left-wrapper');
-                    const rightArrowWrapper = root.querySelector('.acn-arrow-right-wrapper');
-                    
-                    const isAtStart = track.scrollLeft <= 5;
-                    const isAtEnd = track.scrollWidth - track.scrollLeft <= track.clientWidth + 5;
-
-                    if (leftArrowWrapper) {
-                        leftArrowWrapper.style.opacity = isAtStart ? "0" : "1";
-                        leftArrowWrapper.style.pointerEvents = isAtStart ? "none" : "auto";
-                    }
-                    if (rightArrowWrapper) {
-                        rightArrowWrapper.style.opacity = isAtEnd ? "0" : "1";
-                        rightArrowWrapper.style.pointerEvents = isAtEnd ? "none" : "auto";
-                    }
-                }
+                // Disparamos un evento simulado al adherirlo para chequear el estado inicial de las flechas
+                track.dispatchEvent(new Event('scroll'));
             }
-        }, true);
+        }
 
-        // Registro de listeners en Fase de Captura para sortear el SDK
+        document.addEventListener("mouseover", bindScrollListener, { capture: true, passive: true });
+        document.addEventListener("touchstart", bindScrollListener, { capture: true, passive: true });
+        
         document.addEventListener("click", handleWidgetInteractions, true);
         document.addEventListener("touchend", handleWidgetInteractions, { passive: false, capture: true });
 
         /* ════════════════════════════════════════════════════════════════
-           SECCIÓN 5 — INICIALIZACIÓN Y ENRUTAMIENTO WIDGETS
+           SECCIÓN 5 — INICIALIZACIÓN
         ════════════════════════════════════════════════════════════════ */
         window.addEventListener("chat-messenger-loaded", () => {
             const isVoiceHandoff = !!(kycRequestId && customerDocId);
