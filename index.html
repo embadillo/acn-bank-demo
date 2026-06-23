@@ -49,13 +49,13 @@
       chat-title="ACN Bank Demo"
       chat-title-icon="https://gstatic.com/dialogflow-console/common/assets/ccai-favicons/conversational_agents.png"
       enable-file-upload
-      enable-audio-input>
+      enable-audio-input
+      rich-text-rendering-enabled>
       <chat-reset-session-button slot="titlebar-actions" title-text="Start new chat"></chat-reset-session-button>
       <chat-toggle-dialog-button slot="titlebar-actions" title-text-expanded="Collapse" title-text-collapsed="Expand"></chat-toggle-dialog-button>
       <chat-messenger-close-button slot="titlebar-actions" title-text="Close"></chat-messenger-close-button>
     </chat-messenger-container>
   </chat-messenger>
-
   <script>
     /* ======================================================================
        TEMPORARY DEMO WORKAROUND
@@ -67,7 +67,6 @@
     const urlParams = new URLSearchParams(window.location.search);
     const kycRequestId = urlParams.get("r") || urlParams.get("kyc_request_id");
     const customerDocId = urlParams.get("c") || urlParams.get("customer_doc_id");
-
     const BASE = "https://raw.githubusercontent.com/embadillo/acn-bank-assets/refs/heads/main/";
     const PAYEE_LOGOS = {
       "hydro one":             BASE + "Hydro-Logo-from-web-558.jpeg",
@@ -91,7 +90,7 @@
     function sanitizeLiveArgs(args) {
       if (!args || typeof args !== "object") return args;
       try {
-        const cleaned = JSON.stringify(args).replace(/<ctrl(\d+)>/g, (_, n) =>
+        const cleaned = JSON.stringify(args).replace(/<ctrl(\\d+)>/g, (_, n) =>
           String.fromCharCode(parseInt(n, 10))
         );
         return JSON.parse(cleaned);
@@ -585,14 +584,15 @@
 
     window.addEventListener("chat-messenger-loaded", () => {
       const isVoiceHandoff = !!(kycRequestId && customerDocId);
-
+      
+      // <<<<====== CORRECCIÓN APLICADA AQUÍ ======>>>>
       chatSdk.registerContext(
         chatSdk.prebuilts.ces.createContext({
           deploymentName: "projects/483471568825/locations/us/apps/27be6c70-74dc-4e50-a3e8-25b032e7c965/deployments/7cbb68f9-147f-4698-be02-e7ea5fa5d1a3",
           tokenBroker: { enableTokenBroker: true, enableRecaptcha: false },
           sessionParameters: { 
             "is_voice_handoff": isVoiceHandoff,
-            "telephony-caller-id": null // <-- ESTA LÍNEA SE AÑADIÓ PARA FORZAR WEBCHAT
+            "telephony-caller-id": null // Esta línea fuerza al SDK a reconocer el canal como WEBCHAT.
           }
         })
       );
@@ -630,6 +630,7 @@
             });
           });
         });
+
         setTimeout(patchAllMarkdown, 250);
         setTimeout(patchAllMarkdown, 700);
         setTimeout(bindCarouselScrollListeners, 150);
